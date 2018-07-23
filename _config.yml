@@ -1,7 +1,6 @@
-title: Core
-description: The complete core Java software for the Transitime real-time transit information project
-google_analytics: UA-49510272-1
-show_downloads: true
+title: TheTransitClock
+description: The complete core Java software for TheTransitClock real-time transit information project
+show_downloads: false
 theme: jekyll-theme-tactile
 
 gems:
