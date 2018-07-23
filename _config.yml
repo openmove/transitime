@@ -1,0 +1,8 @@
+title: Core
+description: The complete core Java software for the Transitime real-time transit information project
+google_analytics: UA-49510272-1
+show_downloads: true
+theme: jekyll-theme-tactile
+
+gems:
+  - jekyll-mentions
