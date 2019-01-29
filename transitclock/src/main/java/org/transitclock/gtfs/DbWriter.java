@@ -63,7 +63,7 @@ public class DbWriter {
 	 * Uses Hibernate batching so don't use as much memory.
 	 * @param object
 	 */
-	private void writeObject(Session session, Object object) {
+	protected void writeObject(Session session, Object object) {
 		writeObject(session, object, true);
 	}
 	
@@ -91,7 +91,7 @@ public class DbWriter {
 	 * 
 	 * @param configRev
 	 */
-	private void actuallyWriteData(Session session, int configRev, boolean cleanupRevs) {
+	protected void actuallyWriteData(Session session, int configRev, boolean cleanupRevs) {
 		if (cleanupRevs) {
 			// Get rid of old data. Getting rid of trips, trip patterns, and blocks
 			// is a bit complicated. Need to delete them in proper order because
