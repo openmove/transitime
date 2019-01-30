@@ -22,6 +22,7 @@ import org.transitclock.db.structs.Agency;
 import org.transitclock.db.structs.Arrival;
 import org.transitclock.db.structs.AvlReport;
 import org.transitclock.db.structs.Block;
+import org.transitclock.db.structs.BoardAlight;
 import org.transitclock.db.structs.Calendar;
 import org.transitclock.db.structs.CalendarDate;
 import org.transitclock.db.structs.ConfigRevision;
@@ -105,6 +106,7 @@ public class AnnotatedClassesList {
 		VehicleState.class,
 		HoldingTime.class,
 		Headway.class,
+		BoardAlight.class,
 		// For website
 		ApiKey.class,
 		WebAgency.class,

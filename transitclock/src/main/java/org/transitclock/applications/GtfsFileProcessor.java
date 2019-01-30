@@ -26,6 +26,7 @@ import org.transitclock.gtfs.HttpGetGtfsFile;
 import org.transitclock.gtfs.TitleFormatter;
 import org.transitclock.gtfs.gtfsStructs.GtfsAgency;
 import org.transitclock.gtfs.readers.GtfsAgencyReader;
+import org.transitclock.gtfsride.GTFSRideData;
 import org.transitclock.utils.Time;
 import org.transitclock.utils.Zip;
 
@@ -303,8 +304,17 @@ public class GtfsFileProcessor {
 						maxDistanceBetweenStops,
 						disableSpecialLoopBackToBeginningCase);
 		
+		
+		
+		// This is experimental WIP.
+		GTFSRideData gtfsRideData=new GTFSRideData(gtfsData, gtfsDirectoryName, AgencyConfig.getAgencyId(),  configRev,
+				shouldDeleteRevs);
+		
 		gtfsData.processData();
 		
+		gtfsRideData.processData();
+		
+				
 		// Log possibly useful info
 		titleFormatter.logRegexesThatDidNotMakeDifference();
 

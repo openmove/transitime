@@ -31,22 +31,22 @@ public class GtfsRideBoardAlight extends CsvBase {
 		this.stopId=this.getRequiredValue(record, "stop_id");
 		this.stopSequence=Integer.parseInt(this.getRequiredValue(record, "stop_sequence"));
 		this.recordUse=this.getRequiredValue(record, "record_use");		
-		this.scheduleRelationship=Integer.parseInt(this.getOptionalValue(record, "schedule_relationship"));
-		this.boardings=Integer.parseInt(this.getOptionalValue(record, "boardings"));
-		this.alightings=Integer.parseInt(this.getOptionalValue(record, "alightings"));
-		this.currentLoad=Integer.parseInt(this.getOptionalValue(record, "current_load"));
-		this.loadCount=Integer.parseInt(this.getOptionalValue(record, "load_count"));
-		this.loadType=Integer.parseInt(this.getOptionalValue(record, "load_type"));
-		this.rackDown=Boolean.parseBoolean(this.getOptionalValue(record, "ramp_down"));				
-		this.bikeBoardings=Integer.parseInt(this.getOptionalValue(record, "bike_boardings"));
-		this.bikeAlightings=Integer.parseInt(this.getOptionalValue(record, "bike_alightings"));
-		this.rampUsed=Boolean.parseBoolean(this.getOptionalValue(record, "ramp_used"));
-		this.rampBoardings=Integer.parseInt(this.getOptionalValue(record, "ramp_boardings"));
-		this.rampAlightings=Integer.parseInt(this.getOptionalValue(record, "ramp_alightings"));
+		this.scheduleRelationship=this.getOptionalIntegerValue(record, "schedule_relationship");
+		this.boardings=this.getOptionalIntegerValue(record, "boardings");
+		this.alightings=this.getOptionalIntegerValue(record, "alightings");
+		this.currentLoad=this.getOptionalIntegerValue(record, "current_load");
+		this.loadCount=this.getOptionalIntegerValue(record, "load_count");
+		this.loadType=this.getOptionalIntegerValue(record, "load_type");
+		this.rackDown=this.getOptionalBooleanValue(record, "ramp_down");				
+		this.bikeBoardings=this.getOptionalIntegerValue(record, "bike_boardings");
+		this.bikeAlightings=this.getOptionalIntegerValue(record, "bike_alightings");
+		this.rampUsed=this.getOptionalBooleanValue(record, "ramp_used");
+		this.rampBoardings=this.getOptionalIntegerValue(record, "ramp_boardings");
+		this.rampAlightings=this.getOptionalIntegerValue(record, "ramp_alightings");
 		this.serviceDate=this.getOptionalValue(record, "service_date");
 		this.serviceArrivalTime=this.getOptionalValue(record, "service_arrival_time");
 		this.serviceDepartureTime=this.getOptionalValue(record, "service_departure_time");
-		this.source=Integer.parseInt(this.getOptionalValue(record, "source"));
+		this.source=this.getOptionalIntegerValue(record, "source");
 	}
 
 	public String getTripId() {

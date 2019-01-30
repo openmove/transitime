@@ -1,9 +1,12 @@
 package org.transitclock.gtfsride;
 
+import java.text.ParseException;
+import java.util.Date;
+
 import org.hibernate.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
+import org.transitclock.db.structs.BoardAlight;
 import org.transitclock.gtfs.DbWriter;
 import org.transitclock.gtfs.GtfsData;
 import org.transitclock.gtfsride.structs.GtfsRideBoardAlight;
@@ -25,10 +28,14 @@ public class GtfsRideDbWriter extends DbWriter {
 
 		logger.info("Saving boards and alights to database...");				
 		for(GtfsRideBoardAlight boardalight:gtfsRideData.getBoardsAlights())
-		{
-			this.writeObject(session, boardalight);
+		{						 							
+			try {
+				this.writeObject(session, new BoardAlight(boardalight));
+			} catch (ParseException e) {
+				logger.error("Failed to write "+boardalight.toString() + " to database. Exception : {}",e);
+			}
 		}
-		super.actuallyWriteData(session, configRev, cleanupRevs);
+		//super.actuallyWriteData(session, configRev, cleanupRevs);
 		
 	}
 

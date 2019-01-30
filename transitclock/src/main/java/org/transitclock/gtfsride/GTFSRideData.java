@@ -10,7 +10,9 @@ import org.transitclock.db.hibernate.HibernateUtils;
 import org.transitclock.gtfsride.GtfsRideDbWriter;
 import org.transitclock.gtfs.GtfsData;
 import org.transitclock.gtfsride.readers.GtfsRideBoardAlightReader;
+import org.transitclock.gtfsride.readers.GtfsRideTripCapacityReader;
 import org.transitclock.gtfsride.structs.GtfsRideBoardAlight;
+import org.transitclock.gtfsride.structs.GtfsRideTripCapacity;
 
 public class GTFSRideData {
 
@@ -22,6 +24,7 @@ public class GTFSRideData {
 	Session session;
 
 	private List<GtfsRideBoardAlight> boardsAlights;
+	private List<GtfsRideTripCapacity> tripCapacity;
 	private GtfsData gtfsData;
 
 	// Logging
@@ -32,6 +35,7 @@ public class GTFSRideData {
 	 */
 	public void processData() {
 		this.processBoardAlights();
+		this.processTripCapacity();
 		GtfsRideDbWriter dbWriter = new GtfsRideDbWriter(gtfsData, this);
 		dbWriter.actuallyWriteData(session, configRev, cleanupRevs);
 	}
@@ -54,6 +58,12 @@ public class GTFSRideData {
 		GtfsRideBoardAlightReader reader = new GtfsRideBoardAlightReader(gtfsRideDirectoryName, null, false, false);
 		boardsAlights = reader.get();
 	}
+	
+	
+	void processTripCapacity() {
+		GtfsRideTripCapacityReader reader=new GtfsRideTripCapacityReader(gtfsRideDirectoryName, null, false, false);
+		tripCapacity=reader.get();
+	}
 
 	public String getGtfsRideDirectoryName() {
 		return gtfsRideDirectoryName;
@@ -65,6 +75,10 @@ public class GTFSRideData {
 
 	public List<GtfsRideBoardAlight> getBoardsAlights() {
 		return boardsAlights;
+	}
+
+	public List<GtfsRideTripCapacity> getTripCapacity() {
+		return tripCapacity;
 	}
 
 }
