@@ -8,7 +8,7 @@ import org.transitclock.utils.csv.CsvBaseReader;
 
 public class GtfsRideRidershipReader extends CsvBaseReader<GtfsRideRidership> {
 
-	protected GtfsRideRidershipReader(String dirName, String fileName, boolean required, boolean supplemental) {
+	public GtfsRideRidershipReader(String dirName, String fileName, boolean required, boolean supplemental) {
 		
 		super(dirName, "ridership.txt", true, false);
 	}

@@ -39,6 +39,8 @@ import org.transitclock.db.structs.MonitoringEvent;
 import org.transitclock.db.structs.Prediction;
 import org.transitclock.db.structs.PredictionAccuracy;
 import org.transitclock.db.structs.PredictionForStopPath;
+import org.transitclock.db.structs.RiderTrip;
+import org.transitclock.db.structs.Ridership;
 import org.transitclock.db.structs.Route;
 import org.transitclock.db.structs.Stop;
 import org.transitclock.db.structs.StopPath;
@@ -46,6 +48,7 @@ import org.transitclock.db.structs.Transfer;
 import org.transitclock.db.structs.TravelTimesForStopPath;
 import org.transitclock.db.structs.TravelTimesForTrip;
 import org.transitclock.db.structs.Trip;
+import org.transitclock.db.structs.TripCapacity;
 import org.transitclock.db.structs.TripPattern;
 import org.transitclock.db.structs.VehicleConfig;
 import org.transitclock.db.structs.VehicleEvent;
@@ -107,6 +110,9 @@ public class AnnotatedClassesList {
 		HoldingTime.class,
 		Headway.class,
 		BoardAlight.class,
+		TripCapacity.class,
+		RiderTrip.class,
+		Ridership.class,
 		// For website
 		ApiKey.class,
 		WebAgency.class,

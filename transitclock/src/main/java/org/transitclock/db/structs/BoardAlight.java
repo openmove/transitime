@@ -11,12 +11,8 @@ import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
 
-import org.hibernate.CallbackException;
-import org.hibernate.Session;
 import org.hibernate.annotations.DynamicUpdate;
-import org.hibernate.classic.Lifecycle;
 import org.transitclock.gtfsride.structs.GtfsRideBoardAlight;
-import org.transitclock.utils.Time;
 
 @Entity(name = "BoardAlight")
 @DynamicUpdate
