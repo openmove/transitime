@@ -1,5 +1,7 @@
 package org.transitclock.db.structs;
 
+import java.io.Serializable;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
@@ -11,7 +13,11 @@ import org.transitclock.gtfsride.structs.GtfsRideRiderTrip;
 @Entity(name = "RiderTrip")
 @DynamicUpdate
 @Table(name = "RiderTrip")
-public class RiderTrip {
+public class RiderTrip implements Serializable {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 8785915793873463065L;
 	@Id	
 	@Column
 	String riderId;

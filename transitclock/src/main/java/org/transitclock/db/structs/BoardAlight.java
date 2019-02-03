@@ -8,6 +8,8 @@ import java.util.Date;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
 
@@ -22,17 +24,18 @@ public class BoardAlight implements Serializable {
 	 * 
 	 */
 	private static final long serialVersionUID = 7454268288046748972L;
-	@Column
+	
 	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = "id", updatable = false, nullable = false)
+	long id;
+
+	@Column	
 	String tripId;
 	@Column
-	@Id
-	String stopId;
-
-	@Id
+	String stopId;	
 	@Column
 	Date serviceDate;
-
 	@Column
 	Integer stopSequence;
 	@Column
@@ -231,6 +234,10 @@ public class BoardAlight implements Serializable {
 
 	public Integer getSource() {
 		return source;
+	}
+
+	public long getId() {
+		return id;
 	}
 
 }
