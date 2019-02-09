@@ -174,4 +174,11 @@ public class TripDataHistoryCache implements TripDataHistoryCacheInterface {
 	private static <T> Iterable<T> emptyIfNull(Iterable<T> iterable) {
 		return iterable == null ? Collections.<T> emptyList() : iterable;
 	}
+
+	@Override
+	public IpcArrivalDeparture findUpcomingDepartureEvent(List<IpcArrivalDeparture> results,
+			IpcArrivalDeparture arrival) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

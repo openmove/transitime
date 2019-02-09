@@ -23,6 +23,7 @@ public class KalmanErrorCacheKey implements java.io.Serializable {
 
 	private String tripId;
 	private Integer stopPathIndex;
+	private Boolean travelTime;
 	
 	// The vehicleId is only used for debug purposed we know in log which vehicle set the error value
 	private String vehiceId;
@@ -36,38 +37,46 @@ public class KalmanErrorCacheKey implements java.io.Serializable {
 		this.vehiceId = vehiceId;
 	}
 
+	public Boolean getTravelTime() {
+		return travelTime;
+	}
+
+	public void setTravelTime(Boolean travelTime) {
+		this.travelTime = travelTime;
+	}
+
 	/**
 	 * Needs to be serializable to add to cache
 	 */
 	private static final long serialVersionUID = 5029823633051153716L;
 	
 
-	public KalmanErrorCacheKey(Indices indices, String vehicleId) {
+	public KalmanErrorCacheKey(Indices indices, Boolean travelTime, String vehicleId) {
 		super();
 		
 		this.tripId=indices.getBlock().getTrip(indices.getTripIndex()).getId();
 		this.stopPathIndex=indices.getStopPathIndex();		
 		this.vehiceId=vehicleId;
+		this.travelTime=travelTime;
 		
 	}
-	public KalmanErrorCacheKey(Indices indices) {
+	public KalmanErrorCacheKey(Indices indices, Boolean travelTime) {
 		super();
 		
 		this.tripId=indices.getBlock().getTrip(indices.getTripIndex()).getId();
 		this.stopPathIndex=indices.getStopPathIndex();		
+		this.travelTime=travelTime;
 		
 		
 	}
-	@Override
-	public String toString() {
-		return "KalmanErrorCacheKey [tripId=" + tripId + ", stopPathIndex=" + stopPathIndex + "]";
-	}
+	
 
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((stopPathIndex == null) ? 0 : stopPathIndex.hashCode());
+		result = prime * result + ((travelTime == null) ? 0 : travelTime.hashCode());
 		result = prime * result + ((tripId == null) ? 0 : tripId.hashCode());
 		return result;
 	}
@@ -86,6 +95,11 @@ public class KalmanErrorCacheKey implements java.io.Serializable {
 				return false;
 		} else if (!stopPathIndex.equals(other.stopPathIndex))
 			return false;
+		if (travelTime == null) {
+			if (other.travelTime != null)
+				return false;
+		} else if (!travelTime.equals(other.travelTime))
+			return false;
 		if (tripId == null) {
 			if (other.tripId != null)
 				return false;
@@ -94,11 +108,12 @@ public class KalmanErrorCacheKey implements java.io.Serializable {
 		return true;
 	}
 
-	public KalmanErrorCacheKey(String tripId, Integer stopPathIndex) {
+	public KalmanErrorCacheKey(String tripId, Integer stopPathIndex, Boolean travelTime) {
 		super();
 		
 		this.tripId = tripId;
 		this.stopPathIndex = stopPathIndex;
+		this.travelTime=travelTime;
 	}
 
 	
@@ -114,6 +129,12 @@ public class KalmanErrorCacheKey implements java.io.Serializable {
 	 */
 	public void setStopPathIndex(int stopPathIndex) {
 		this.stopPathIndex = stopPathIndex;
+	}
+
+	@Override
+	public String toString() {
+		return "KalmanErrorCacheKey [tripId=" + tripId + ", stopPathIndex=" + stopPathIndex + ", travelTime="
+				+ travelTime + "]";
 	}
 	
 }

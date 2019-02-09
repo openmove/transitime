@@ -7,11 +7,11 @@ import org.transitclock.core.Indices;
 
 public interface ErrorCache {
 	
-	Double getErrorValue(Indices indices);
+	Double getErrorValue(Indices indices, Boolean travelTime);
 
 	Double getErrorValue(KalmanErrorCacheKey key);
 
-	void putErrorValue(Indices indices, Double value);
+	void putErrorValue(Indices indices, Double value, Boolean travelTime);
 		
 	void putErrorValue(KalmanErrorCacheKey key, Double value);
 

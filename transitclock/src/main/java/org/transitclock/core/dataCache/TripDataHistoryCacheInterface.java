@@ -23,4 +23,6 @@ public interface TripDataHistoryCacheInterface {
 	IpcArrivalDeparture findPreviousArrivalEvent(List<IpcArrivalDeparture> arrivalDepartures, IpcArrivalDeparture current);
 
 	IpcArrivalDeparture findPreviousDepartureEvent(List<IpcArrivalDeparture> arrivalDepartures, IpcArrivalDeparture current);
+
+	IpcArrivalDeparture findUpcomingDepartureEvent(List<IpcArrivalDeparture> results, IpcArrivalDeparture arrival);
 }

@@ -33,9 +33,9 @@ public class KalmanErrorCache implements ErrorCache  {
 	 */
 	@Override
 	@SuppressWarnings("unchecked")
-	synchronized public Double getErrorValue(Indices indices) {		
+	synchronized public Double getErrorValue(Indices indices, Boolean travelTime) {		
 		
-		KalmanErrorCacheKey key=new KalmanErrorCacheKey(indices);
+		KalmanErrorCacheKey key=new KalmanErrorCacheKey(indices, travelTime);
 		
 		Double result = cache.get(key);
 		
@@ -59,9 +59,9 @@ public class KalmanErrorCache implements ErrorCache  {
 	 */
 	@Override
 	@SuppressWarnings("unchecked")
-	synchronized public void putErrorValue(Indices indices,  Double value) {
+	synchronized public void putErrorValue(Indices indices,  Double value, Boolean travelTime) {
 		
-		KalmanErrorCacheKey key=new KalmanErrorCacheKey(indices);
+		KalmanErrorCacheKey key=new KalmanErrorCacheKey(indices, travelTime);
 				
 		cache.put(key, value);
 		

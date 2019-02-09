@@ -36,8 +36,8 @@ public class KalmanErrorCache implements ErrorCache {
 	}
 
 	@Override
-	public Double getErrorValue(Indices indices) {
-		KalmanErrorCacheKey key=new KalmanErrorCacheKey(indices);
+	public Double getErrorValue(Indices indices, Boolean travelTime) {
+		KalmanErrorCacheKey key=new KalmanErrorCacheKey(indices, travelTime);
 		
 		return getErrorValue(key);
 	}
@@ -50,9 +50,9 @@ public class KalmanErrorCache implements ErrorCache {
 	}
 
 	@Override
-	public void putErrorValue(Indices indices, Double value) {
+	public void putErrorValue(Indices indices, Double value, Boolean travelTime) {
 		
-		KalmanErrorCacheKey key=new KalmanErrorCacheKey(indices);
+		KalmanErrorCacheKey key=new KalmanErrorCacheKey(indices, travelTime);
 		putErrorValue(key, value);
 	}
 
@@ -70,7 +70,7 @@ public class KalmanErrorCache implements ErrorCache {
 	}
 
 	private String createKey(KalmanErrorCacheKey key) {
-		return keystub + key.getTripId() + "_" + key.getStopPathIndex();
+		return keystub + key.getTripId() + "_" + key.getStopPathIndex()+"_"+key.getTravelTime();
 
 	}
 

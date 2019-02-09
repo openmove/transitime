@@ -159,4 +159,24 @@ public class TripDataHistoryCache implements TripDataHistoryCacheInterface {
 	private static <T> Iterable<T> emptyIfNull(Iterable<T> iterable) {
 		return iterable == null ? Collections.<T> emptyList() : iterable;
 	}
+
+	@Override
+	public IpcArrivalDeparture findUpcomingDepartureEvent(List<IpcArrivalDeparture> results,
+			IpcArrivalDeparture arrival) {
+		
+		Collections.sort(results, new IpcArrivalDepartureComparator());							
+		for (IpcArrivalDeparture tocheck : emptyIfNull(results)) 
+		{
+			try {
+				if(tocheck.getStopPathIndex()==(arrival.getStopPathIndex()) && (arrival.isArrival() && tocheck.isDeparture()))
+				{
+					return tocheck;
+				}
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}			
+		}		
+		return null;
+	}
 }

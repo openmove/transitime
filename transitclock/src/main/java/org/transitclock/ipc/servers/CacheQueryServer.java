@@ -193,7 +193,8 @@ public class CacheQueryServer extends AbstractServer implements CacheQueryInterf
 
 	@Override
 	public Double getKalmanErrorValue(String tripId, Integer stopPathIndex) throws RemoteException {
-		KalmanErrorCacheKey key=new KalmanErrorCacheKey(tripId, stopPathIndex);
+		// TODO this needs to be chanaged to also allow for dwell time error values.
+		KalmanErrorCacheKey key=new KalmanErrorCacheKey(tripId, stopPathIndex, true);
 		Double result = ErrorCacheFactory.getInstance().getErrorValue(key);
 		return result;
 	}

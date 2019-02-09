@@ -111,7 +111,7 @@ public class KalmanPredictionGeneratorImpl extends HistoricalAveragePredictionGe
 
 				Date nearestDay = DateUtils.truncate(avlReport.getDate(), Calendar.DAY_OF_MONTH);
 				
-				List<TravelTimeDetails> lastDaysTimes = lastDaysTimes(tripCache, currentVehicleState.getTrip().getId(),currentVehicleState.getTrip().getDirectionId(),
+				List<TravelTimeDetails> lastDaysTimes = lastDaysTravelTimes(tripCache, currentVehicleState.getTrip().getId(),currentVehicleState.getTrip().getDirectionId(),
 						indices.getStopPathIndex(), nearestDay, time,
 						maxKalmanDaysToSearch.getValue(), maxKalmanDays.getValue());
 
@@ -154,9 +154,9 @@ public class KalmanPredictionGeneratorImpl extends HistoricalAveragePredictionGe
 
 						Indices previousVehicleIndices = new Indices(travelTimeDetails.getArrival());
 
-						Double last_prediction_error = lastVehiclePredictionError(kalmanErrorCache, previousVehicleIndices);
+						Double last_prediction_error = lastVehiclePredictionError(kalmanErrorCache, previousVehicleIndices, true);
 
-						logger.debug("Using error value: " + last_prediction_error +" found with vehicle id "+travelTimeDetails.getArrival().getVehicleId()+ " from: "+new KalmanErrorCacheKey(previousVehicleIndices).toString());
+						logger.debug("Using error value: " + last_prediction_error +" found with vehicle id "+travelTimeDetails.getArrival().getVehicleId()+ " from: "+new KalmanErrorCacheKey(previousVehicleIndices, true).toString());
 
 						//TODO this should also display the detail of which vehicle it choose as the last one.
 						logger.debug("Using last vehicle value: " + travelTimeDetails + " for : "+ indices.toString());
@@ -166,9 +166,9 @@ public class KalmanPredictionGeneratorImpl extends HistoricalAveragePredictionGe
 
 						long predictionTime = (long) kalmanPredictionResult.getResult();
 
-						logger.debug("Setting Kalman error value: " + kalmanPredictionResult.getFilterError() + " for : "+ new KalmanErrorCacheKey(indices).toString());
+						logger.debug("Setting Kalman error value: " + kalmanPredictionResult.getFilterError() + " for : "+ new KalmanErrorCacheKey(indices, true).toString());
 
-						kalmanErrorCache.putErrorValue(indices, kalmanPredictionResult.getFilterError());
+						kalmanErrorCache.putErrorValue(indices, kalmanPredictionResult.getFilterError(), true);
 
 						logger.debug("Using Kalman prediction: " + predictionTime + " instead of "+alternative+" prediction: "
 								+ super.getTravelTimeForPath(indices, avlReport, vehicleState) +" for : " + indices.toString());
@@ -220,16 +220,16 @@ public class KalmanPredictionGeneratorImpl extends HistoricalAveragePredictionGe
 		}
 	}
 
-	private Double lastVehiclePredictionError(ErrorCache cache, Indices indices) {
+	private Double lastVehiclePredictionError(ErrorCache cache, Indices indices, Boolean travelTime) {
 
-		Double result = cache.getErrorValue(indices);
+		Double result = cache.getErrorValue(indices, travelTime);
 		if(result!=null&&!result.isNaN())
 		{
-			logger.debug("Kalman Error value : "+result +" for key: "+new KalmanErrorCacheKey(indices).toString());
+			logger.debug("Kalman Error value : "+result +" for key: "+new KalmanErrorCacheKey(indices, travelTime).toString());
 		}
 		else
 		{
-			logger.debug("Kalman Error value set to default: "+initialErrorValue.getValue() +" for key: "+new KalmanErrorCacheKey(indices).toString());
+			logger.debug("Kalman Error value set to default: "+initialErrorValue.getValue() +" for key: "+new KalmanErrorCacheKey(indices, true).toString());
 			return initialErrorValue.getValue();
 		}
 		return result;
@@ -238,6 +238,8 @@ public class KalmanPredictionGeneratorImpl extends HistoricalAveragePredictionGe
 	@Override
 	public long getStopTimeForPath(Indices indices, AvlReport avlReport, VehicleState vehicleState) {
 		long result=super.getStopTimeForPath(indices, avlReport, vehicleState);
+		
+		
 		
 		return result;
 		

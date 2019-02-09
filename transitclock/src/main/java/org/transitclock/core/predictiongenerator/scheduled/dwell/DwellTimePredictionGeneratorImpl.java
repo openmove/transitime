@@ -52,7 +52,7 @@ public class DwellTimePredictionGeneratorImpl extends KalmanPredictionGeneratorI
 					
 					if(result==null)
 					{
-						logger.debug("Using scheduled value for dwell time as no RLS data available for {}.", indices);
+						logger.debug("Using scheduled value for dwell time as no data available for {}.", indices);
 						result = super.getStopTimeForPath(indices,  avlReport, vehicleState);
 					}
 					

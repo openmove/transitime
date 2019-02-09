@@ -17,11 +17,13 @@
 package org.transitclock.core;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.time.DateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.transitclock.applications.Core;
@@ -30,6 +32,9 @@ import org.transitclock.config.IntegerConfigValue;
 import org.transitclock.config.LongConfigValue;
 import org.transitclock.core.dataCache.HoldingTimeCache;
 import org.transitclock.core.dataCache.StopPathPredictionCache;
+import org.transitclock.core.dataCache.TripDataHistoryCacheFactory;
+import org.transitclock.core.dataCache.TripDataHistoryCacheInterface;
+import org.transitclock.core.dataCache.TripKey;
 import org.transitclock.core.dataCache.VehicleStateManager;
 import org.transitclock.core.holdingmethod.HoldingTimeGeneratorFactory;
 import org.transitclock.core.predictiongenerator.PredictionComponentElementsGenerator;
@@ -38,6 +43,7 @@ import org.transitclock.db.structs.HoldingTime;
 import org.transitclock.db.structs.PredictionForStopPath;
 import org.transitclock.db.structs.StopPath;
 import org.transitclock.db.structs.Trip;
+import org.transitclock.ipc.data.IpcArrivalDeparture;
 import org.transitclock.ipc.data.IpcPrediction;
 import org.transitclock.ipc.data.IpcPrediction.ArrivalOrDeparture;
 import org.transitclock.utils.Geo;
@@ -326,7 +332,12 @@ public class PredictionGeneratorDefaultImpl extends PredictionGenerator implemen
 			}
 		}			
 	}
+
+	private void populateTripHistory(TripDataHistoryCacheInterface tripCache,
+				Map<String, List<IpcArrivalDeparture>> tripHistory) {
 		
+			// TODO would be best load trip history here once. Rather than for each stop path. 
+	}
 	/**
 	 * Generates the predictions for the vehicle. 
 	 * 
@@ -342,6 +353,11 @@ public class PredictionGeneratorDefaultImpl extends PredictionGenerator implemen
 		// can use either arrival or departure times, depending on what
 		// the agency wants. Therefore make this configurable.
 		
+		Map<String, List<IpcArrivalDeparture>> tripHistory=new HashMap<String, List<IpcArrivalDeparture>>();
+		
+		TripDataHistoryCacheInterface tripCache = TripDataHistoryCacheFactory.getInstance();
+		
+		populateTripHistory(tripCache, tripHistory);
 		
 		boolean useArrivalPreds = useArrivalPredictionsForNormalStops.getValue();
 		
@@ -556,6 +572,7 @@ public class PredictionGeneratorDefaultImpl extends PredictionGenerator implemen
 		return newPredictions;
 	}
 	
+
 
 	public long getTravelTimeForPath(Indices indices, AvlReport avlReport, VehicleState vehicleState)
 	{

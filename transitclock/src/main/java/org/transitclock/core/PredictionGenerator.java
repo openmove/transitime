@@ -88,6 +88,51 @@ public abstract class PredictionGenerator {
 	private static final Logger logger = 
 			LoggerFactory.getLogger(PredictionGenerator.class);
 	
+	protected DwellTimeDetails getLastVehicleDwellTime(VehicleState currentVehicleState, Indices indices) throws Exception {
+				
+		if(!indices.atBeginningOfTrip())
+		{
+			String currentStopId = indices.getStopPath().getStopId();					
+			
+			StopArrivalDepartureCacheKey currentStopKey = new StopArrivalDepartureCacheKey(currentStopId,
+					new Date(currentVehicleState.getMatch().getAvlTime()));
+			
+			List<IpcArrivalDeparture> currentStopList = StopArrivalDepartureCacheFactory.getInstance().getStopHistory(currentStopKey);
+									
+			for(IpcArrivalDeparture currentArrivalDeparture : currentStopList)
+			{
+				if(currentArrivalDeparture.isArrival()
+						&& !currentArrivalDeparture.getVehicleId().equals(currentVehicleState.getVehicleId())
+						&& (currentVehicleState.getTrip().getDirectionId()==null || currentVehicleState.getTrip().getDirectionId().equals(currentArrivalDeparture.getDirectionId())))
+				{
+					// This is the last vehicles arrival at this stop.					
+					IpcArrivalDeparture arrival=currentArrivalDeparture;
+					IpcArrivalDeparture departure=findMatchingDeparture(currentStopList, arrival);
+					if(departure!=null)					
+						return new DwellTimeDetails(arrival, departure);									
+				}
+			}
+		}
+		return null;		
+	}
+	
+	private IpcArrivalDeparture findMatchingDeparture(List<IpcArrivalDeparture> currentStopList,
+			IpcArrivalDeparture arrival) {
+		// TODO Auto-generated method stub
+		for(IpcArrivalDeparture currentArrivalDeparture:currentStopList)
+		{
+			if(currentArrivalDeparture.isDeparture()&&arrival.isArrival() &&
+					currentArrivalDeparture.getStopId().equals(arrival.getStopId()) && 
+							currentArrivalDeparture.getTripId().equals(arrival.getTripId()) )
+			{
+				return currentArrivalDeparture;
+			}
+				
+		}
+		
+		return null;
+	}
+
 	protected TravelTimeDetails getLastVehicleTravelTime(VehicleState currentVehicleState, Indices indices) throws Exception {
 
 		StopArrivalDepartureCacheKey nextStopKey = new StopArrivalDepartureCacheKey(
@@ -247,8 +292,44 @@ public abstract class PredictionGenerator {
 
 		return null;
 	}
+	protected List<DwellTimeDetails> lastDaysDwellTimes(TripDataHistoryCacheInterface cache, String tripId,String direction, int stopPathIndex, Date startDate,
+			Integer startTime, int num_days_look_back, int num_days) 
+	{
+		List<DwellTimeDetails> times = new ArrayList<DwellTimeDetails>();
+		int num_found=0;
+		List<IpcArrivalDeparture> results = null;
+		for (int i = 0; i < num_days_look_back && num_found < num_days; i++) {
+			
+			Date nearestDay = DateUtils.truncate(DateUtils.addDays(startDate, (i + 1) * -1), Calendar.DAY_OF_MONTH);
 
-	protected List<TravelTimeDetails> lastDaysTimes(TripDataHistoryCacheInterface cache, String tripId,String direction, int stopPathIndex, Date startDate,
+			TripKey tripKey = new TripKey(tripId, nearestDay, startTime);
+
+			results = cache.getTripHistory(tripKey);
+			
+			if(results!=null)
+			{
+				IpcArrivalDeparture arrival = getArrival(stopPathIndex, results);
+				
+				if(arrival!=null)
+				{			
+					IpcArrivalDeparture departure= TripDataHistoryCacheFactory.getInstance().findUpcomingDepartureEvent(results, arrival);
+					
+					DwellTimeDetails dwellTimeDetails=new DwellTimeDetails( arrival, departure);
+		
+					if(dwellTimeDetails.getDwellTime()!=-1)
+					{
+						times.add(dwellTimeDetails);
+						num_found++;
+					}
+				}
+			}
+			
+		}
+		return times;
+		
+	}
+
+	protected List<TravelTimeDetails> lastDaysTravelTimes(TripDataHistoryCacheInterface cache, String tripId,String direction, int stopPathIndex, Date startDate,
 			Integer startTime, int num_days_look_back, int num_days) {
 
 		List<TravelTimeDetails> times = new ArrayList<TravelTimeDetails>();
@@ -303,6 +384,7 @@ public abstract class PredictionGenerator {
 		}
 		return null;
 	}
+	
 	protected long timeBetweenStops(ArrivalDeparture ad1, ArrivalDeparture ad2) {
 
 		return Math.abs(ad2.getTime() - ad1.getTime());

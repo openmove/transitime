@@ -338,4 +338,10 @@ public class TripDataHistoryCache implements TripDataHistoryCacheInterface{
 			return null;
 		}		
 	}
+	@Override
+	public IpcArrivalDeparture findUpcomingDepartureEvent(List<IpcArrivalDeparture> results,
+			IpcArrivalDeparture arrival) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }
