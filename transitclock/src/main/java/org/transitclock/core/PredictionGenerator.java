@@ -39,6 +39,10 @@ import org.transitclock.core.dataCache.TripDataHistoryCacheInterface;
 import org.transitclock.core.dataCache.TripKey;
 import org.transitclock.core.dataCache.ehcache.StopArrivalDepartureCache;
 import org.transitclock.core.dataCache.ehcache.scheduled.TripDataHistoryCache;
+import org.transitclock.core.predictiongenerator.datafilter.DwellTimeDataFilter;
+import org.transitclock.core.predictiongenerator.datafilter.DwellTimeFilterFactory;
+import org.transitclock.core.predictiongenerator.datafilter.TravelTimeDataFilter;
+import org.transitclock.core.predictiongenerator.datafilter.TravelTimeFilterFactory;
 import org.transitclock.db.structs.ArrivalDeparture;
 import org.transitclock.db.structs.AvlReport;
 import org.transitclock.db.structs.Block;
@@ -318,8 +322,12 @@ public abstract class PredictionGenerator {
 		
 					if(dwellTimeDetails.getDwellTime()!=-1)
 					{
-						times.add(dwellTimeDetails);
-						num_found++;
+						DwellTimeDataFilter dwellTimeFilter=DwellTimeFilterFactory.getInstance();
+						if(!dwellTimeFilter.filter(arrival, departure))
+						{
+							times.add(dwellTimeDetails);
+							num_found++;
+						}
 					}
 				}
 			}
@@ -340,8 +348,6 @@ public abstract class PredictionGenerator {
 		 * which services use this trip and only 1ook on day service is
 		 * running
 		 */
-
-
 		for (int i = 0; i < num_days_look_back && num_found < num_days; i++) {
 
 			Date nearestDay = DateUtils.truncate(DateUtils.addDays(startDate, (i + 1) * -1), Calendar.DAY_OF_MONTH);
@@ -364,8 +370,12 @@ public abstract class PredictionGenerator {
 						
 						if(travelTimeDetails.getTravelTime()!=-1)
 						{
-							times.add(travelTimeDetails);
-							num_found++;
+							TravelTimeDataFilter travelTimefilter = TravelTimeFilterFactory.getInstance();
+							if(!travelTimefilter.filter(travelTimeDetails.getDeparture(),travelTimeDetails.getArrival()))
+							{
+								times.add(travelTimeDetails);
+								num_found++;
+							}
 						}
 					}
 				}

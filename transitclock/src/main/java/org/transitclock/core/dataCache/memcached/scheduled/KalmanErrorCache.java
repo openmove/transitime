@@ -13,6 +13,8 @@ import org.transitclock.core.dataCache.ErrorCache;
 import org.transitclock.core.dataCache.KalmanErrorCacheKey;
 import org.transitclock.utils.Time;
 
+import flexjson.JSONDeserializer;
+import flexjson.JSONSerializer;
 import net.spy.memcached.MemcachedClient;
 
 public class KalmanErrorCache implements ErrorCache {
@@ -45,7 +47,7 @@ public class KalmanErrorCache implements ErrorCache {
 	@Override
 	public Double getErrorValue(KalmanErrorCacheKey key) {
 
-		Double value = (Double)memcachedClient.get(createKey(key));
+		Double value = new JSONDeserializer<Double>().deserialize((String)memcachedClient.get(createKey(key)));
 		return value;
 	}
 
@@ -53,12 +55,14 @@ public class KalmanErrorCache implements ErrorCache {
 	public void putErrorValue(Indices indices, Double value, Boolean travelTime) {
 		
 		KalmanErrorCacheKey key=new KalmanErrorCacheKey(indices, travelTime);
+	
 		putErrorValue(key, value);
 	}
 
 	@Override
 	public void putErrorValue(KalmanErrorCacheKey key, Double value) {
-		memcachedClient.set(createKey(key), expiryDuration, value);
+		String jsonValue = new JSONSerializer().serialize(value);
+		memcachedClient.set(createKey(key), expiryDuration, jsonValue);
 
 	}
 
