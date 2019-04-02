@@ -1,7 +1,10 @@
 package org.transitclock.core.predictiongenerator.scheduled.dwell;
 
+import java.util.Date;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.transitclock.applications.Core;
 import org.transitclock.config.BooleanConfigValue;
 import org.transitclock.core.HeadwayDetails;
 import org.transitclock.core.Indices;
@@ -9,10 +12,12 @@ import org.transitclock.core.TemporalDifference;
 import org.transitclock.core.VehicleState;
 import org.transitclock.core.dataCache.DwellTimeModelCacheFactory;
 import org.transitclock.core.dataCache.StopPathCacheKey;
+import org.transitclock.core.dataCache.StopPathPredictionCache;
 import org.transitclock.core.dataCache.VehicleStateManager;
 import org.transitclock.core.predictiongenerator.scheduled.traveltime.kalman.KalmanPredictionGeneratorImpl;
 import org.transitclock.db.structs.AvlReport;
 import org.transitclock.db.structs.Headway;
+import org.transitclock.db.structs.PredictionForStopPath;
 import org.transitclock.ipc.data.IpcPrediction;
 
 /**
@@ -62,6 +67,12 @@ public class DwellTimePredictionGeneratorImpl extends KalmanPredictionGeneratorI
 					{
 						logger.debug("Predicted negative dwell time {} for {}.", result, indices);
 						result=0L;
+					}
+					if(storeDwellTimeStopPathPredictions.getValue())
+					{
+						PredictionForStopPath predictionForStopPath=new PredictionForStopPath(vehicleState.getVehicleId(), new Date(Core.getInstance().getSystemTime()), new Double(new Long(result).intValue()), indices.getTrip().getId(), indices.getStopPathIndex(), "DWELL", false, null);
+						Core.getInstance().getDbLogger().add(predictionForStopPath);
+						StopPathPredictionCache.getInstance().putPrediction(predictionForStopPath);
 					}
 						
 				}else

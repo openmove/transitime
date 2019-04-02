@@ -47,7 +47,7 @@ public class KalmanErrorCache implements ErrorCache {
 	@Override
 	public Double getErrorValue(KalmanErrorCacheKey key) {
 
-		Double value = new JSONDeserializer<Double>().deserialize((String)memcachedClient.get(createKey(key)));
+		Double value = (Double)memcachedClient.get(createKey(key));
 		return value;
 	}
 
@@ -60,10 +60,8 @@ public class KalmanErrorCache implements ErrorCache {
 	}
 
 	@Override
-	public void putErrorValue(KalmanErrorCacheKey key, Double value) {
-		String jsonValue = new JSONSerializer().serialize(value);
-		memcachedClient.set(createKey(key), expiryDuration, jsonValue);
-
+	public void putErrorValue(KalmanErrorCacheKey key, Double value) {		
+		memcachedClient.set(createKey(key), expiryDuration, value);
 	}
 
 	@Override

@@ -113,7 +113,7 @@ public class KalmanPredictionGeneratorImpl extends PredictionGeneratorDefaultImp
 
 				Date nearestDay = DateUtils.truncate(avlReport.getDate(), Calendar.DAY_OF_MONTH);
 
-				List<TravelTimeDetails> lastDaysTimes = lastDaysTravelTimes(tripCache, currentVehicleState.getTrip().getId(),currentVehicleState.getTrip().getDirectionId(),
+				List<TravelTimeDetails> lastDaysTimes = lastDaysTravelTimes(tripCache,vehicleState.getBlock(), currentVehicleState.getTrip().getId(),currentVehicleState.getTrip().getDirectionId(),
 						indices.getStopPathIndex(), nearestDay, currentVehicleState.getTrip().getStartTime(),
 						maxKalmanDaysToSearch.getValue(), maxKalmanDays.getValue());
 
