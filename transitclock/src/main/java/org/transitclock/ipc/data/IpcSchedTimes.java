@@ -42,8 +42,15 @@ public class IpcSchedTimes implements Serializable {
 	/********************** Member Functions **************************/
 
 	public IpcSchedTimes(ScheduleTime dbScheduleTime, String stopId) {
-		this.arrivalTime = dbScheduleTime.getArrivalTime();
-		this.departureTime = dbScheduleTime.getDepartureTime();
+		if(dbScheduleTime!=null)
+		{			
+			this.arrivalTime = dbScheduleTime.getArrivalTime();
+			this.departureTime = dbScheduleTime.getDepartureTime();
+		}else
+		{
+			this.arrivalTime=null;
+			this.departureTime=null;
+		}
 		this.stopId = stopId;
 		Stop stop = Core.getInstance().getDbConfig().getStop(stopId);
 		this.stopName = stop.getName();

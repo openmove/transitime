@@ -72,43 +72,45 @@ public class MatchProcessor {
 	 * @param vehicleState
 	 */
 	private void processPredictions(VehicleState vehicleState) {
-		logger.debug("Processing predictions for vehicleId={}",
-				vehicleState.getVehicleId());
-
-		// Generate the new predictions for the vehicle
-		List<IpcPrediction> newPredictions = 
-				PredictionGeneratorFactory.getInstance().generate(vehicleState);
-
-		// Store the predictions in database if so configured
-		if (CoreConfig.getMaxPredictionsTimeForDbSecs() > 0) {
-			for (IpcPrediction prediction : newPredictions) {
-				// If prediction not too far into the future then ...
-				if (prediction.getPredictionTime() - prediction.getAvlTime() < (CoreConfig
-						.getMaxPredictionsTimeForDbSecs() * Time.MS_PER_SEC)) {
-					// Store the prediction into db
-					Prediction dbPrediction = new Prediction(prediction);
-					
-					Core.getInstance().getDbLogger().add(dbPrediction);
-
-				}else
-				{
-					logger.debug("Difference in predictionTiem and AVLTime is {} and is greater than getMaxPredictionsTimeForDbSecs {}.", prediction.getPredictionTime() - prediction.getAvlTime(), CoreConfig
-							.getMaxPredictionsTimeForDbSecs() * Time.MS_PER_SEC);
+		
+		
+		if(PredictionGeneratorFactory.getInstance()!=null)
+		{
+			logger.debug("Processing predictions for vehicleId={}",
+					vehicleState.getVehicleId());
+	
+			// Generate the new predictions for the vehicle
+			List<IpcPrediction> newPredictions = 
+					PredictionGeneratorFactory.getInstance().generate(vehicleState);
+	
+			// Store the predictions in database if so configured
+			if (CoreConfig.getMaxPredictionsTimeForDbSecs() > 0) {
+				for (IpcPrediction prediction : newPredictions) {
+					// If prediction not too far into the future then ...
+					if (prediction.getPredictionTime() - prediction.getAvlTime() < (CoreConfig
+							.getMaxPredictionsTimeForDbSecs() * Time.MS_PER_SEC)) {
+						// Store the prediction into db
+						Prediction dbPrediction = new Prediction(prediction);
+						
+						Core.getInstance().getDbLogger().add(dbPrediction);
+	
+					}else
+					{
+						logger.debug("Difference in predictionTiem and AVLTime is {} and is greater than getMaxPredictionsTimeForDbSecs {}.", prediction.getPredictionTime() - prediction.getAvlTime(), CoreConfig
+								.getMaxPredictionsTimeForDbSecs() * Time.MS_PER_SEC);
+					}
 				}
 			}
+	
+			// Update the predictions cache to use the new predictions for the
+			// vehicle
+			List<IpcPrediction> oldPredictions = vehicleState.getPredictions();
+			PredictionDataCache.getInstance().updatePredictions(oldPredictions,
+					newPredictions);
+	
+			// Update predictions for vehicle
+			vehicleState.setPredictions(newPredictions);		
 		}
-
-		// Update the predictions cache to use the new predictions for the
-		// vehicle
-		List<IpcPrediction> oldPredictions = vehicleState.getPredictions();
-		PredictionDataCache.getInstance().updatePredictions(oldPredictions,
-				newPredictions);
-
-		// Update predictions for vehicle
-		vehicleState.setPredictions(newPredictions);
-		
-		
-		
 	}
 
 	/**

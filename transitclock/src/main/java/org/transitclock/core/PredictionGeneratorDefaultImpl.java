@@ -413,9 +413,17 @@ public class PredictionGeneratorDefaultImpl extends PredictionGenerator implemen
 					lateSoMarkSubsequentTripsAsUncertain
 							&& indices.getTripIndex() > currentTripIndex;
 			
+			Integer delay = null;
 			
-			Integer delay = RealTimeSchedAdhProcessor.generateEffectiveScheduleDifference(vehicleState).getTemporalDifference()/1000;
-							
+			try
+			{
+				delay= RealTimeSchedAdhProcessor.generateEffectiveScheduleDifference(vehicleState).getTemporalDifference()/1000;
+			}
+			catch(Exception Ex)
+			{
+				
+			}
+									
 			// Determine the new prediction
 			IpcPrediction predictionForStop = generatePredictionForStop(avlReport,
 					indices, predictionTime,

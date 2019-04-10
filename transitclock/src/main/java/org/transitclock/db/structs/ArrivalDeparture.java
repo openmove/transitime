@@ -257,16 +257,19 @@ public class ArrivalDeparture implements Lifecycle, Serializable  {
 			Date scheduledEpochTime = null;
 			if (!trip.isNoSchedule()) {
 				ScheduleTime scheduleTime = trip.getScheduleTime(stopPathIndex);
-				if (stopPath.isLastStopInTrip() && scheduleTime.getArrivalTime() != null
-						&& isArrival) {
-					long epochTime = Core.getInstance().getTime()
-							.getEpochTime(scheduleTime.getArrivalTime(), time);
-					scheduledEpochTime = new Date(epochTime);
-				} else if (!stopPath.isLastStopInTrip()
-						&& scheduleTime.getDepartureTime() != null && !isArrival) {
-					long epochTime = Core.getInstance().getTime()
-							.getEpochTime(scheduleTime.getDepartureTime(), time);
-					scheduledEpochTime = new Date(epochTime);
+				if(scheduleTime !=null)
+				{
+					if (stopPath.isLastStopInTrip() && scheduleTime.getArrivalTime() != null
+							&& isArrival) {
+						long epochTime = Core.getInstance().getTime()
+								.getEpochTime(scheduleTime.getArrivalTime(), time);
+						scheduledEpochTime = new Date(epochTime);
+					} else if (!stopPath.isLastStopInTrip()
+							&& scheduleTime.getDepartureTime() != null && !isArrival) {
+						long epochTime = Core.getInstance().getTime()
+								.getEpochTime(scheduleTime.getDepartureTime(), time);
+						scheduledEpochTime = new Date(epochTime);
+					}
 				}
 
 			}

@@ -33,7 +33,7 @@ public class PredictionGeneratorFactory {
 	// The name of the class to instantiate
 	private static StringConfigValue className = 
 			new StringConfigValue("transitclock.core.predictionGeneratorClass", 
-					"org.transitclock.core.PredictionGeneratorDefaultImpl",
+					null,
 					"Specifies the name of the class used for generating " +
 					"prediction data.");
 
@@ -44,8 +44,11 @@ public class PredictionGeneratorFactory {
 	public static PredictionGenerator getInstance() {
 		// If the PredictionGenerator hasn't been created yet then do so now
 		if (singleton == null) {
-			singleton = ClassInstantiator.instantiate(className.getValue(), 
+			if(className.getValue()!=null)
+			{
+				singleton = ClassInstantiator.instantiate(className.getValue(), 
 					PredictionGenerator.class);
+			}
 		}
 		
 		return singleton;

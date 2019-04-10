@@ -30,6 +30,7 @@ import org.transitclock.config.BooleanConfigValue;
 import org.transitclock.config.DoubleConfigValue;
 import org.transitclock.config.IntegerConfigValue;
 import org.transitclock.configData.CoreConfig;
+import org.transitclock.core.BlockAssignmentMethod;
 import org.transitclock.core.BlocksInfo;
 import org.transitclock.core.SpatialMatch;
 import org.transitclock.core.SpatialMatcher;
@@ -41,6 +42,7 @@ import org.transitclock.core.VehicleState;
 import org.transitclock.core.dataCache.VehicleDataCache;
 import org.transitclock.core.dataCache.VehicleStateManager;
 import org.transitclock.db.structs.AvlReport;
+import org.transitclock.db.structs.AvlReport.AssignmentType;
 import org.transitclock.db.structs.Block;
 import org.transitclock.db.structs.Trip;
 import org.transitclock.utils.IntervalTimer;
@@ -232,7 +234,20 @@ public class AutoBlockAssigner {
 
 		return currentlyUnassignedBlocks;
 	}
-	
+	private List<Block> unassignedActiveBlocks(String routeId) {
+		List<Block> currentlyUnassignedBlocks = new ArrayList<Block>();	
+		ArrayList<String> routeids=new ArrayList<String>();
+		routeids.add(routeId);
+		List<Block> activeBlocks = BlocksInfo.getCurrentlyActiveBlocks(routeids, null, 0, -1);
+		for (Block block : activeBlocks) {
+			if (isBlockUnassigned(block.getId())) {
+				// No vehicles assigned to this active block so should see
+				// if the vehicle currently trying to assign can match to it
+				currentlyUnassignedBlocks.add(block);
+			}
+		}
+		return currentlyUnassignedBlocks;
+	}
 	/**
 	 * Determines the best match by looking at both the current AVL report and
 	 * the previous one. Only for block assignments that do not have a schedule.
@@ -667,8 +682,20 @@ public class AutoBlockAssigner {
 		// blocks are to be exclusive then only look at the ones currently
 		// not used. But if not to be exclusive, such as for no schedule based
 		// routes, then look at all active blocks.
-		List<Block> blocksToExamine = CoreConfig.exclusiveBlockAssignments() ? 
-				unassignedActiveBlocks() : BlocksInfo.getCurrentlyActiveBlocks();
+		List<Block> blocksToExamine = null;
+		if(CoreConfig.exclusiveBlockAssignments())
+		{
+		
+			// If route in AVL then only match to active blocks on the route.
+			if(vehicleState.getAvlReport().getAssignmentType()==AssignmentType.ROUTE_ID 
+					&& !ignoreAvlAssignments.getValue())
+			{
+				blocksToExamine=unassignedActiveBlocks(vehicleState.getAvlReport().getAssignmentId()); 
+			}else
+			{
+				blocksToExamine=unassignedActiveBlocks();
+			}
+		}				
 		
 		if (blocksToExamine.isEmpty()) {
 			logger.info("No currently active blocks to assign vehicleId={} to.",
@@ -712,6 +739,8 @@ public class AutoBlockAssigner {
 		return validMatches;
 	}
 	
+
+
 	/**
 	 * Determines if the auto assigner is being called too recently, as specified by
 	 * the transitclock.autoBlockAssigner.minTimeBetweenAutoAssigningSecs property. This
