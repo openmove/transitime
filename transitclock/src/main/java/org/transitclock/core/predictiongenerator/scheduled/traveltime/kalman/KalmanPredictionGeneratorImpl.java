@@ -39,8 +39,6 @@ import org.transitclock.core.predictiongenerator.scheduled.average.HistoricalAve
 import org.transitclock.db.structs.AvlReport;
 import org.transitclock.db.structs.PredictionEvent;
 import org.transitclock.db.structs.PredictionForStopPath;
-import org.transitclock.db.structs.VehicleEvent;
-import org.transitclock.ipc.data.IpcPrediction;
 
 /**
  * @author Sean Óg Crudden This is a prediction generator that uses a Kalman
@@ -120,7 +118,7 @@ public class KalmanPredictionGeneratorImpl extends PredictionGeneratorDefaultImp
 			 * little to say about todays.
 			 */
 			if (travelTimeDetails!=null) {
-
+				recordRate("PredictionKalmanHeadwayHit", true);
 				logger.debug("Kalman has last vehicle info for : " +indices.toString()+ " : "+travelTimeDetails);
 
 				Date nearestDay = DateUtils.truncate(avlReport.getDate(), Calendar.DAY_OF_MONTH);
@@ -138,7 +136,8 @@ public class KalmanPredictionGeneratorImpl extends PredictionGeneratorDefaultImp
 				 * to extended class for prediction.
 				 */
 				if (lastDaysTimes != null && lastDaysTimes.size() >= minKalmanDays.getValue().intValue()) {
-
+					recordRate("PredictionKalmanHistoryHit", true);
+					recordAverage("PredictionKalmanHistorySize", lastDaysTimes.size());
 					logger.debug("Generating Kalman prediction for : "+indices.toString());
 
 					try {
@@ -212,17 +211,31 @@ public class KalmanPredictionGeneratorImpl extends PredictionGeneratorDefaultImp
 							Core.getInstance().getDbLogger().add(predictionForStopPath);
 							StopPathPredictionCache.getInstance().putPrediction(predictionForStopPath);
 						}
+						recordRate("PredictionKalmanHit", true);
 						return predictionTime;
 
 					} catch (Exception e) {
 						logger.error(e.getMessage(), e);
 					}
+				} else {
+					recordRate("PredictionKalmanHistoryHit", false);
+					if (lastDaysTimes == null)
+						recordAverage("PredictionKalmanHistorySize", 0.0);
+					else
+						recordAverage("PredictionKalmanHistorySize", lastDaysTimes.size());
 				}
+			} else {
+				recordRate("PredictionKalmanHeadwayHit", false);
 			}
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} finally {
+			// instrument prediction generation
+			recordSum("PredictionGeneration");
 		}
+		// instrument kalman miss
+		recordRate("PredictionKalmanHit", false);
 		return alternatePrediction;
 	}
 

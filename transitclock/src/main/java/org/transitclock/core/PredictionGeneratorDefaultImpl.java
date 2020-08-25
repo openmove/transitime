@@ -16,12 +16,6 @@
  */
 package org.transitclock.core;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.transitclock.applications.Core;
@@ -42,6 +36,7 @@ import org.transitclock.db.structs.StopPath;
 import org.transitclock.db.structs.Trip;
 import org.transitclock.ipc.data.IpcPrediction;
 import org.transitclock.ipc.data.IpcPrediction.ArrivalOrDeparture;
+import org.transitclock.monitoring.CloudwatchService;
 import org.transitclock.utils.Geo;
 import org.transitclock.utils.Time;
 
@@ -73,6 +68,16 @@ import org.transitclock.utils.Time;
  */
 public class PredictionGeneratorDefaultImpl extends PredictionGenerator implements PredictionComponentElementsGenerator{
 
+	private CloudwatchService monitoring = null;
+
+	private static BooleanConfigValue terminatePredictionsAtTripEnd =
+			new BooleanConfigValue("transitclock.core.terminatePredictionsAtTripEnd",
+					false,
+					"Once maxPredictionsTimeSecs reached, continue until end of trip");
+
+	public static boolean getTerminatePredictionsAtTripEnd() {
+		return terminatePredictionsAtTripEnd.getValue();
+	}
 	private static IntegerConfigValue maxPredictionsTimeSecs =
 			new IntegerConfigValue("transitclock.core.maxPredictionsTimeSecs", 
 					45 * Time.SEC_PER_MIN,
@@ -81,7 +86,7 @@ public class PredictionGeneratorDefaultImpl extends PredictionGenerator implemen
 	public static int getMaxPredictionsTimeSecs() {
 		return maxPredictionsTimeSecs.getValue();
 	}
-			
+
 	private static LongConfigValue generateHoldingTimeWhenPredictionWithin =
 			new LongConfigValue("transitclock.core.generateHoldingTimeWhenPredictionWithin",
 					0L,
@@ -114,12 +119,12 @@ public class PredictionGeneratorDefaultImpl extends PredictionGenerator implemen
 					+ "If this value is set to true then the actual schedule "
 					+ "time will be used. If false then the schedule time plus "
 					+ "the wait stop time will be used.");
-	
+
 	private static BooleanConfigValue useHoldingTimeInPrediction =
 			new BooleanConfigValue("useHoldingTimeInPrediction",
 					false,
 					"Add holding time to prediction.");
-	
+
 	private static final Logger logger = 
 			LoggerFactory.getLogger(PredictionGeneratorDefaultImpl.class);
 
@@ -185,7 +190,7 @@ public class PredictionGeneratorDefaultImpl extends PredictionGenerator implemen
 		// If should generate arrival time...
 		if ((indices.atEndOfTrip() || useArrivalTimes) && !indices.isWaitStop()) {	
 			// Create and return arrival time for this stop
-			return new IpcPrediction(avlReport, stopId, gtfsStopSeq, trip, 
+			return new IpcPrediction(avlReport, stopId, gtfsStopSeq, trip,
 					predictionTime,	predictionTime, indices.atEndOfTrip(),
 					affectedByWaitStop, isDelayed, lateSoMarkAsUncertain,
 					ArrivalOrDeparture.ARRIVAL, scheduleDeviation, freqStartTime, tripCounter,vehicleState.isCanceled());
@@ -397,12 +402,12 @@ public class PredictionGeneratorDefaultImpl extends PredictionGenerator implemen
 		Integer tripCounter = new Integer(vehicleState.getTripCounter());
 
 		Map<Integer, IpcPrediction> filteredPredictions = new HashMap<Integer, IpcPrediction>();
-		
+
 
 		// Continue through block until end of block or limit on how far
 		// into the future should generate predictions reached.
 		while (schedBasedPreds
-				|| predictionTime < 
+				|| predictionTime <
 					avlTime + maxPredictionsTimeSecs.getValue() * Time.MS_PER_SEC) {
 			// Keep track of whether prediction is affected by layover 
 			// scheduled departure time since those predictions might not
@@ -553,7 +558,7 @@ public class PredictionGeneratorDefaultImpl extends PredictionGenerator implemen
 				predictionTime += getTravelTimeForPath(indices, avlReport, vehicleState);
 			}					
 		}
-		
+
 		for(IpcPrediction prediction : filteredPredictions.values()){
 			newPredictions.add(prediction);
 			
@@ -563,7 +568,7 @@ public class PredictionGeneratorDefaultImpl extends PredictionGenerator implemen
 		// Return the results
 		return newPredictions;
 	}
-	
+
 
 	public long getTravelTimeForPath(Indices indices, AvlReport avlReport, VehicleState vehicleState)
 	{
@@ -607,6 +612,46 @@ public class PredictionGeneratorDefaultImpl extends PredictionGenerator implemen
 		result = prime * result + Long.valueOf(prediction.getPredictionTime()).hashCode();
 		
 		return result;
+	}
+
+
+	/**
+	 * increment the metric sum
+	 * @param metricName the metric to increment
+	 */
+	protected void recordSum(String metricName) {
+		getMonitoring().saveMetric(metricName, 1.0, 1, CloudwatchService.MetricType.SUM, CloudwatchService.ReportingIntervalTimeUnit.MINUTE, false);
+	}
+
+	/**
+	 * provide another value to average into a rolling average metric
+	 * @param metricName the rolling average metric
+	 * @param metricValue the value to merge in
+	 */
+	protected void recordAverage(String metricName, double metricValue) {
+		getMonitoring().saveMetric(metricName, metricValue, 1, CloudwatchService.MetricType.AVERAGE, CloudwatchService.ReportingIntervalTimeUnit.MINUTE, false);
+	}
+
+	/**
+	 * track a rate (such as cache miss/hit rate) and the overall usage count.
+	 * @param metricName
+	 * @param hit
+	 */
+	protected void recordRate(String metricName, boolean hit) {
+		double metricValue = (hit? 1.0: 0.0);
+		getMonitoring().saveMetric(metricName, metricValue, 1, CloudwatchService.MetricType.SUM, CloudwatchService.ReportingIntervalTimeUnit.MINUTE, false);
+		getMonitoring().saveMetric(metricName + "Rate", metricValue, 1, CloudwatchService.MetricType.AVERAGE, CloudwatchService.ReportingIntervalTimeUnit.MINUTE, true);
+
+	}
+
+	/**
+	 * lazy load Cloudwatch Monitoring service.
+	 * @return
+	 */
+	private CloudwatchService getMonitoring() {
+		if (monitoring == null)
+			monitoring = CloudwatchService.getInstance();
+		return monitoring;
 	}
 
 }
