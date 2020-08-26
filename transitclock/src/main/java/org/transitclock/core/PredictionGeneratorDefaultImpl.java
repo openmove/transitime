@@ -178,6 +178,7 @@ public class PredictionGeneratorDefaultImpl extends PredictionGenerator implemen
 
 	  boolean lateSoMarkAsUncertain, int tripCounter, Integer scheduleDeviation) {	 
 
+		getMonitoring().sumMetric("PredictionGenerationDefault");
 		// Determine additional parameters for the prediction to be generated
 		
 		StopPath path = indices.getStopPath();
@@ -201,6 +202,7 @@ public class PredictionGeneratorDefaultImpl extends PredictionGenerator implemen
 						
 		// If should generate arrival time...
 		if ((indices.atEndOfTrip() || useArrivalTimes) && !indices.isWaitStop()) {	
+			getMonitoring().sumMetric("PredictionGenerationStop");
 			// Create and return arrival time for this stop
 			return new IpcPrediction(avlReport, stopId, gtfsStopSeq, trip,
 					predictionTime,	predictionTime, indices.atEndOfTrip(),
@@ -316,6 +318,7 @@ public class PredictionGeneratorDefaultImpl extends PredictionGenerator implemen
 								
 					long predictionForNextStopCalculation = expectedDepartureTime;
 					long predictionForUser = expectedDepartureTimeWithoutStopWaitTime;
+					getMonitoring().sumMetric("PredictionGenerationStop");
 					return new IpcPrediction(avlReport, stopId, gtfsStopSeq,
 							trip, predictionForUser,
 							predictionForNextStopCalculation,
@@ -325,7 +328,8 @@ public class PredictionGeneratorDefaultImpl extends PredictionGenerator implemen
 							ArrivalOrDeparture.DEPARTURE, scheduleDeviation, freqStartTime, tripCounter,vehicleState.isCanceled());
 
 				} else {
-					// Use the expected departure times, possibly adjusted for 
+					getMonitoring().sumMetric("PredictionGenerationStop");
+					// Use the expected departure times, possibly adjusted for
 					// stop wait times
 					return new IpcPrediction(avlReport, stopId, gtfsStopSeq,
 							trip, expectedDepartureTime, expectedDepartureTime,
@@ -336,7 +340,8 @@ public class PredictionGeneratorDefaultImpl extends PredictionGenerator implemen
 
 				}
 			} else {
-				// Create and return the departure prediction for this 
+				getMonitoring().sumMetric("PredictionGenerationStop");
+				// Create and return the departure prediction for this
 				// non-wait-stop stop
 				return new IpcPrediction(avlReport, stopId, gtfsStopSeq, trip,
 						predictionTime + expectedStopTimeMsec, 
@@ -627,40 +632,12 @@ public class PredictionGeneratorDefaultImpl extends PredictionGenerator implemen
 	}
 
 
-	/**
-	 * increment the metric sum
-	 * @param metricName the metric to increment
-	 */
-	protected void recordSum(String metricName) {
-		getMonitoring().saveMetric(metricName, 1.0, 1, CloudwatchService.MetricType.SUM, CloudwatchService.ReportingIntervalTimeUnit.MINUTE, false);
-	}
-
-	/**
-	 * provide another value to average into a rolling average metric
-	 * @param metricName the rolling average metric
-	 * @param metricValue the value to merge in
-	 */
-	protected void recordAverage(String metricName, double metricValue) {
-		getMonitoring().saveMetric(metricName, metricValue, 1, CloudwatchService.MetricType.AVERAGE, CloudwatchService.ReportingIntervalTimeUnit.MINUTE, false);
-	}
-
-	/**
-	 * track a rate (such as cache miss/hit rate) and the overall usage count.
-	 * @param metricName
-	 * @param hit
-	 */
-	protected void recordRate(String metricName, boolean hit) {
-		double metricValue = (hit? 1.0: 0.0);
-		getMonitoring().saveMetric(metricName, metricValue, 1, CloudwatchService.MetricType.SUM, CloudwatchService.ReportingIntervalTimeUnit.MINUTE, false);
-		getMonitoring().saveMetric(metricName + "Rate", metricValue, 1, CloudwatchService.MetricType.AVERAGE, CloudwatchService.ReportingIntervalTimeUnit.MINUTE, true);
-
-	}
 
 	/**
 	 * lazy load Cloudwatch Monitoring service.
 	 * @return
 	 */
-	private CloudwatchService getMonitoring() {
+	protected CloudwatchService getMonitoring() {
 		if (monitoring == null)
 			monitoring = CloudwatchService.getInstance();
 		return monitoring;
