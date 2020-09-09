@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 
 import org.jdom2.Document;
 import org.jdom2.Element;
@@ -48,8 +49,16 @@ public class LametroRFPAvlModule extends NextBusAvlModule {
 			//"2020-09-08 15:04:25"
 						 
 			try {
-				Date time = dateFormat.parse(vehicle.getChild("date").getValue());
-				
+												
+				SimpleDateFormat sdfgmt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+			    sdfgmt.setTimeZone(TimeZone.getTimeZone("UTC"));			   
+			    
+			    Date time = null;
+			    try {
+			        time = sdfgmt.parse(vehicle.getChild("date").getValue());
+			    } catch (ParseException e) {e.printStackTrace();}
+
+			   				
 				Element id = vehicle.getChild("id");
 				
 				String vehicleId=id.getValue();
