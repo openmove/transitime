@@ -43,7 +43,7 @@ public class LametroRFPAvlModule extends NextBusAvlModule {
 		Element rootNode = doc.getRootElement();
 		
 		Element vehiclesNode = rootNode.getChild("vehicles");
-		
+		previousTime = System.currentTimeMillis();
 		List<Element> vehicles = vehiclesNode.getChildren("vehicle");
 		for (Element vehicle : vehicles) {
 			
@@ -94,8 +94,7 @@ public class LametroRFPAvlModule extends NextBusAvlModule {
 			} catch (Exception e) {
 				e.printStackTrace();
 				logger.error(e.getMessage(),e);
-			}
-			previousTime = System.currentTimeMillis() - 1*Time.MS_PER_MIN;;
+			}			 
 			 /*
 			  * public AvlReport(String vehicleId, long time, double lat, double lon,
 			float speed, float heading, String source, String leadVehicleId,
