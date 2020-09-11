@@ -26,6 +26,7 @@ public class LametroRFPAvlModule extends NextBusAvlModule {
 			new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 	private static final Logger logger = 
 			LoggerFactory.getLogger(LametroRFPAvlModule.class);	
+	
 	/**
 	 * Constructor
 	 * @param agencyId
@@ -94,7 +95,7 @@ public class LametroRFPAvlModule extends NextBusAvlModule {
 				e.printStackTrace();
 				logger.error(e.getMessage(),e);
 			}
-			 
+			previousTime = System.currentTimeMillis() - 1*Time.MS_PER_MIN;;
 			 /*
 			  * public AvlReport(String vehicleId, long time, double lat, double lon,
 			float speed, float heading, String source, String leadVehicleId,
@@ -112,7 +113,8 @@ public class LametroRFPAvlModule extends NextBusAvlModule {
 	@Override
 	protected String getUrl() {
 		// Determine the URL to use.
-			return "http://data.nextbus.com/service/customerfeed/lametro/avl?command=lastdata";
+			
+			return "http://data.nextbus.com/service/customerfeed/lametro/avl?command=lastdata&t="+previousTime;
 	}
 	
 	/**
