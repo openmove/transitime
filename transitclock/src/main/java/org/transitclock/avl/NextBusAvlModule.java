@@ -45,7 +45,7 @@ public class NextBusAvlModule extends XmlPollingAvlModule {
 	// Parameter that specifies URL of the NextBus feed.
 	private static StringConfigValue nextBusFeedUrl = 
 			new StringConfigValue("transitclock.avl.nextbus.url", 
-					"http://webservices.nextbus.com/service/publicXMLFeed",
+					"http://data.nextbus.com/service/customerfeed/",
 					"The URL of the NextBus feed to use.");
 	private static String getNextBusFeedUrl() {
 		return nextBusFeedUrl.getValue();
@@ -92,7 +92,7 @@ public class NextBusAvlModule extends XmlPollingAvlModule {
 	// So can just get data since last query. Initialize so when first called
 	// get data for last 10 minutes. Definitely don't want to use t=0 because
 	// then can end up with some really old reports.
-	private long previousTime = System.currentTimeMillis() - 1*Time.MS_PER_MIN;
+	public long previousTime = System.currentTimeMillis() - 1*Time.MS_PER_MIN;
 	
 	private static final Logger logger = 
 			LoggerFactory.getLogger(NextBusAvlModule.class);	
