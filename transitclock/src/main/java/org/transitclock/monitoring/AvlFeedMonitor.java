@@ -52,7 +52,7 @@ public class AvlFeedMonitor extends MonitorBase {
 	private static StringConfigValue avlFeedEmailRecipients =
 			new StringConfigValue(
 					"transitclock.monitoring.avlFeedEmailRecipients", 
-					"monitoring@transitclock.org", 
+					"og.crudden@gmail.com", 
 					"Comma separated list of e-mail addresses indicating who "
 					+ "should be e-mail when monitor state changes for AVL "
 					+ "feed.");

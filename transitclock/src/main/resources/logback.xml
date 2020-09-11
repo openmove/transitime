@@ -518,7 +518,10 @@
 		level="debug" additivity="true"> 
 		<appender-ref ref="MAPMATCH" /> 
 	</logger>
-
+	
+	<logger name="org.transitclock.core.AvlProcessor" level="debug" additivity="true">
+		<appender-ref ref="AVL" /> </logger>
+		
 	<!-- In order to log the hibernate SQL queries need to set org.hibernate.SQL
 		to debug. To show the values of the parameters need to set org.hibernate.type
 		to trace. Probably also want to set in hibernate.cfg.xml the properties format_sql
