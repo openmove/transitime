@@ -18,11 +18,13 @@ package org.transitclock.core;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.transitclock.applications.Core;
 import org.transitclock.config.IntegerConfigValue;
+import org.transitclock.config.StringConfigValue;
 import org.transitclock.configData.AgencyConfig;
 import org.transitclock.configData.CoreConfig;
 import org.transitclock.core.dataCache.ArrivalDeparturesToProcessHoldingTimesFor;
@@ -149,7 +151,11 @@ public class ArrivalDepartureGeneratorDefaultImpl
 					"If the time of a determine arrival/departure is really "
 					+ "different from the AVL time then something must be "
 					+ "wrong and the situation will be logged.");
-
+	
+	// This can be used to set the routes that will support Kalman filter. */
+	private static StringConfigValue routeRegEx=new StringConfigValue("transitclock.cache.arrivalsdepartures.regex", null, "Route to cache data for Kalman Filter. If there is no data in cache for a route it will not run Kalman.");
+	
+	
 	/********************** Member Functions **************************/
 
 	/**
@@ -339,61 +345,74 @@ public class ArrivalDepartureGeneratorDefaultImpl
 
 		return arrival;
 	}
+	public static boolean routeNotFiltered(String routeId) {
+		
+		if (routeRegEx.getValue() == null)
+			return true;		
+			
+		Pattern routeIdFilterRegExPattern = Pattern.compile(routeRegEx.getValue());
+		
+		boolean matches = routeIdFilterRegExPattern.matcher(routeId.trim()).matches();
+		return matches;
+	}
 	private void updateCache(VehicleState vehicleState, ArrivalDeparture arrivalDeparture)
 	{
 								
-		
-		if(TripDataHistoryCacheFactory.getInstance()!=null)
-			TripDataHistoryCacheFactory.getInstance().putArrivalDeparture(arrivalDeparture);
-
-		if(StopArrivalDepartureCacheFactory.getInstance()!=null)
+		if(routeNotFiltered(arrivalDeparture.getRouteId()))
 		{
-			StopArrivalDepartureCacheFactory.getInstance().putArrivalDeparture(arrivalDeparture);
-		}
-		
-		if(DwellTimeModelCacheFactory.getInstance()!=null)
-		{
-			DwellTimeModelCacheFactory.getInstance().addSample(arrivalDeparture);
-		}
-
-		if(ScheduleBasedHistoricalAverageCache.getInstance()!=null)
-		{
-			try {
-				ScheduleBasedHistoricalAverageCache.getInstance().putArrivalDeparture(arrivalDeparture);
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+			
+			if(TripDataHistoryCacheFactory.getInstance()!=null)
+				TripDataHistoryCacheFactory.getInstance().putArrivalDeparture(arrivalDeparture);
+	
+			if(StopArrivalDepartureCacheFactory.getInstance()!=null)
+			{
+				StopArrivalDepartureCacheFactory.getInstance().putArrivalDeparture(arrivalDeparture);
 			}
-		}
-
-		if(FrequencyBasedHistoricalAverageCache.getInstance()!=null)
-			try {
-				FrequencyBasedHistoricalAverageCache.getInstance().putArrivalDeparture(arrivalDeparture);
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+			
+			if(DwellTimeModelCacheFactory.getInstance()!=null)
+			{
+				DwellTimeModelCacheFactory.getInstance().addSample(arrivalDeparture);
 			}
-
-		if(HoldingTimeGeneratorFactory.getInstance()!=null)
-		{
-			HoldingTime holdingTime;
-			try {
-				holdingTime = HoldingTimeGeneratorFactory.getInstance().generateHoldingTime(vehicleState, new IpcArrivalDeparture(arrivalDeparture));
-				if(holdingTime!=null)
-				{
-					HoldingTimeCache.getInstance().putHoldingTime(holdingTime);
-					vehicleState.setHoldingTime(holdingTime);
-
+	
+			if(ScheduleBasedHistoricalAverageCache.getInstance()!=null)
+			{
+				try {
+					ScheduleBasedHistoricalAverageCache.getInstance().putArrivalDeparture(arrivalDeparture);
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
 				}
-				ArrayList<Long> N_List=new ArrayList<Long>();
-
-				HoldingTimeGeneratorFactory.getInstance().handleDeparture(vehicleState, arrivalDeparture);
-
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
 			}
-		
+	
+			if(FrequencyBasedHistoricalAverageCache.getInstance()!=null)
+				try {
+					FrequencyBasedHistoricalAverageCache.getInstance().putArrivalDeparture(arrivalDeparture);
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+	
+			if(HoldingTimeGeneratorFactory.getInstance()!=null)
+			{
+				HoldingTime holdingTime;
+				try {
+					holdingTime = HoldingTimeGeneratorFactory.getInstance().generateHoldingTime(vehicleState, new IpcArrivalDeparture(arrivalDeparture));
+					if(holdingTime!=null)
+					{
+						HoldingTimeCache.getInstance().putHoldingTime(holdingTime);
+						vehicleState.setHoldingTime(holdingTime);
+	
+					}
+					ArrayList<Long> N_List=new ArrayList<Long>();
+	
+					HoldingTimeGeneratorFactory.getInstance().handleDeparture(vehicleState, arrivalDeparture);
+	
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			
+			}
 		}
 		/*
 		if(HoldingTimeGeneratorDefaultImpl.getOrderedListOfVehicles("66")!=null)
