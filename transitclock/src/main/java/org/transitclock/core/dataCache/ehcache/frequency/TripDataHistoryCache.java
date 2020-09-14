@@ -165,7 +165,7 @@ public class TripDataHistoryCache implements TripDataHistoryCacheInterface{
 				
 				if(trip!=null)							
 				{												
-					tripKey = new TripKey(arrivalDeparture.getTripId(),
+					tripKey = new TripKey(arrivalDeparture.getRouteId(),arrivalDeparture.getTripId(),
 							nearestDay,
 							time);
 					

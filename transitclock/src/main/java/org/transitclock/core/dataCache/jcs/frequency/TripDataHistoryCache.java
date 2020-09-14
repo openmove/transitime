@@ -101,7 +101,7 @@ public class TripDataHistoryCache implements TripDataHistoryCacheInterface {
 				/* this is what gets the trip from the buckets */
 				time=FrequencyBasedHistoricalAverageCache.round(time, FrequencyBasedHistoricalAverageCache.getCacheIncrementsForFrequencyService());
 				
-				tripKey = new TripKey(arrivalDeparture.getTripId(),
+				tripKey = new TripKey(arrivalDeparture.getRouteId(),arrivalDeparture.getTripId(),
 						nearestDay,
 						time);
 										

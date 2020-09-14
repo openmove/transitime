@@ -114,7 +114,7 @@ public class CacheQueryServer extends AbstractServer implements CacheQueryInterf
 	}
 
 	@Override
-	public List<IpcArrivalDeparture> getTripArrivalDepartures(String tripId, LocalDate localDate, Integer starttime)
+	public List<IpcArrivalDeparture> getTripArrivalDepartures(String routeId, String tripId, LocalDate localDate, Integer starttime)
 			throws RemoteException {
 
 		try {
@@ -123,7 +123,7 @@ public class CacheQueryServer extends AbstractServer implements CacheQueryInterf
 			if(tripId!=null && localDate!=null && starttime!=null){
 
 				Date date = Date.from(localDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
-				TripKey tripKey = new TripKey(tripId, date, starttime);
+				TripKey tripKey = new TripKey(routeId, tripId, date, starttime);
 
 				result = TripDataHistoryCacheFactory.getInstance().getTripHistory(tripKey);
 			}

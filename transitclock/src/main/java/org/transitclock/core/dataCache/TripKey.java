@@ -11,11 +11,20 @@ public class TripKey implements java.io.Serializable {
 	 */
 	private static final long serialVersionUID = 5029823633051153715L;
 	private String tripId;
+	private String routeId;
 	
 	private Date tripStartDate;
 	private Integer startTime;
 
 	
+	public String getRouteId() {
+		return routeId;
+	}
+
+	public void setRouteId(String routeId) {
+		this.routeId = routeId;
+	}
+
 	/**
 	 * @return the tripId
 	 */
@@ -35,7 +44,7 @@ public class TripKey implements java.io.Serializable {
 	public Integer getStartTime() {
 		return startTime;
 	}
-	public TripKey(String tripId,  Date tripStartDate,
+	public TripKey(String routeId, String tripId,  Date tripStartDate,
 			Integer startTime) {
 		super();
 		this.tripId = tripId;	
@@ -44,14 +53,28 @@ public class TripKey implements java.io.Serializable {
 		this.startTime = startTime;
 	}
 
+
+
+	public void setStartTime(Integer time) {
+		// TODO Auto-generated method stub
+		this.startTime=time;
+		
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime * result + ((routeId == null) ? 0 : routeId.hashCode());
 		result = prime * result + ((startTime == null) ? 0 : startTime.hashCode());
-		result = prime * result + ((tripId == null) ? 0 : tripId.hashCode());
 		result = prime * result + ((tripStartDate == null) ? 0 : tripStartDate.hashCode());
 		return result;
+	}
+
+	@Override
+	public String toString() {
+		return "TripKey [tripId=" + tripId + ", routeId=" + routeId + ", tripStartDate=" + tripStartDate
+				+ ", startTime=" + startTime + "]";
 	}
 
 	@Override
@@ -63,15 +86,15 @@ public class TripKey implements java.io.Serializable {
 		if (getClass() != obj.getClass())
 			return false;
 		TripKey other = (TripKey) obj;
+		if (routeId == null) {
+			if (other.routeId != null)
+				return false;
+		} else if (!routeId.equals(other.routeId))
+			return false;
 		if (startTime == null) {
 			if (other.startTime != null)
 				return false;
 		} else if (!startTime.equals(other.startTime))
-			return false;
-		if (tripId == null) {
-			if (other.tripId != null)
-				return false;
-		} else if (!tripId.equals(other.tripId))
 			return false;
 		if (tripStartDate == null) {
 			if (other.tripStartDate != null)
@@ -80,19 +103,4 @@ public class TripKey implements java.io.Serializable {
 			return false;
 		return true;
 	}
-
-	@Override
-	public String toString() {
-		return "TripKey [tripId=" + tripId + ", tripStartDate=" + tripStartDate + ", startTime=" + startTime + "]";
-	}
-
-	public void setStartTime(Integer time) {
-		// TODO Auto-generated method stub
-		this.startTime=time;
-		
-	}
-
-
-
-
 }

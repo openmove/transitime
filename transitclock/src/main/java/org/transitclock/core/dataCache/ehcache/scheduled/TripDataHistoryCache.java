@@ -25,6 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.transitclock.applications.Core;
 import org.transitclock.config.IntegerConfigValue;
+import org.transitclock.core.ArrivalDepartureGeneratorDefaultImpl;
 import org.transitclock.core.dataCache.IpcArrivalDepartureComparator;
 import org.transitclock.core.dataCache.TripDataHistoryCacheFactory;
 import org.transitclock.core.dataCache.TripDataHistoryCacheInterface;
@@ -130,7 +131,7 @@ public class TripDataHistoryCache implements TripDataHistoryCacheInterface{
 			if(trip!=null)
 			{
 				
-				tripKey = new TripKey(arrivalDeparture.getTripId(),
+				tripKey = new TripKey(arrivalDeparture.getRouteId(),arrivalDeparture.getTripId(),
 						nearestDay,
 						trip.getStartTime());
 		
@@ -169,7 +170,7 @@ public class TripDataHistoryCache implements TripDataHistoryCacheInterface{
 		for(ArrivalDeparture result : results)		
 		{						
 			// TODO this might be better done in the database.						
-			if(GtfsData.routeNotFiltered(result.getRouteId()))
+			if(ArrivalDepartureGeneratorDefaultImpl.routeNotFiltered(result.getRouteId()))
 			{
 				TripDataHistoryCacheFactory.getInstance().putArrivalDeparture(result);
 			}

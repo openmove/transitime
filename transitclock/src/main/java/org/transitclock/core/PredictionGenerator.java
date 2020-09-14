@@ -262,7 +262,7 @@ public abstract class PredictionGenerator {
 	}
 
 
-	protected List<TravelTimeDetails> lastDaysTimes(TripDataHistoryCacheInterface cache, String tripId,String direction, int stopPathIndex, Date startDate,
+	protected List<TravelTimeDetails> lastDaysTimes(TripDataHistoryCacheInterface cache, String routeId,String tripId,String direction, int stopPathIndex, Date startDate,
 
 			Integer startTime, int num_days_look_back, int num_days) {
 
@@ -278,7 +278,7 @@ public abstract class PredictionGenerator {
 
 			Date nearestDay = DateUtils.truncate(DateUtils.addDays(startDate, (i + 1) * -1), Calendar.DAY_OF_MONTH);
 
-			TripKey tripKey = new TripKey(tripId, nearestDay, startTime);
+			TripKey tripKey = new TripKey(routeId, tripId, nearestDay, startTime);
 
 			results = cache.getTripHistory(tripKey);
 

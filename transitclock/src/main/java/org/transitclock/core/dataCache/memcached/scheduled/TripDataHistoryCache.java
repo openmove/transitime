@@ -82,7 +82,7 @@ public class TripDataHistoryCache implements TripDataHistoryCacheInterface {
 
 		Trip trip = dbConfig.getTrip(arrivalDeparture.getTripId());
 		if (trip != null) {
-			TripKey tripKey = new TripKey(arrivalDeparture.getTripId(), nearestDay, trip.getStartTime());
+			TripKey tripKey = new TripKey(arrivalDeparture.getRouteId(),arrivalDeparture.getTripId(), nearestDay, trip.getStartTime());
 
 			List<IpcArrivalDeparture> list = this.getTripHistory(tripKey);
 
