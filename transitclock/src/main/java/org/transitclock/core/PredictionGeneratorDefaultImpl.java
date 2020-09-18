@@ -1,4 +1,4 @@
-/* 
+/*
  * This file is part of Transitime.org
  *
  * Transitime.org is free software: you can redistribute it and/or modify
@@ -32,6 +32,7 @@ import org.transitclock.core.predictiongenerator.bias.BiasAdjusterFactory;
 import org.transitclock.db.structs.*;
 import org.transitclock.ipc.data.IpcPrediction;
 import org.transitclock.ipc.data.IpcPrediction.ArrivalOrDeparture;
+import org.transitclock.monitoring.CloudwatchService;
 import org.transitclock.utils.Geo;
 import org.transitclock.utils.Time;
 
@@ -64,6 +65,8 @@ import java.util.*;
  *
  */
 public class PredictionGeneratorDefaultImpl implements PredictionGenerator, PredictionComponentElementsGenerator{
+
+	private CloudwatchService monitoring = null;
 
 	private static BooleanConfigValue terminatePredictionsAtTripEnd =
 			new BooleanConfigValue("transitclock.core.terminatePredictionsAtTripEnd",
@@ -130,6 +133,12 @@ public class PredictionGeneratorDefaultImpl implements PredictionGenerator, Pred
 					false,
 					"Add holding time to prediction.");
 
+	private static IntegerConfigValue maxAgeOfHistoricalPredictions =
+			new IntegerConfigValue("transitclock.core.maxAgeOfHistoricalPredictions",
+					1,
+					"When holding on to historical predictions for future stops, how long " +
+							"to keep message before expiring. Value in minutes.");
+
 	private static final Logger logger =
 			LoggerFactory.getLogger(PredictionGeneratorDefaultImpl.class);
 
@@ -171,6 +180,7 @@ public class PredictionGeneratorDefaultImpl implements PredictionGenerator, Pred
 
 	  boolean lateSoMarkAsUncertain, int tripCounter, Integer scheduleDeviation) {
 
+		getMonitoring().sumMetric("PredictionGenerationDefault");
 		 // Determine additional parameters for the prediction to be generated
 
 		StopPath path = indices.getStopPath();
@@ -194,6 +204,7 @@ public class PredictionGeneratorDefaultImpl implements PredictionGenerator, Pred
 
 		// If should generate arrival time...
 		if ((indices.atEndOfTrip() || useArrivalTimes) && !indices.isWaitStop()) {
+			getMonitoring().sumMetric("PredictionGenerationStop");
 			// Create and return arrival time for this stop
 			return new IpcPrediction(avlReport, stopId, gtfsStopSeq, trip,
 					predictionTime,	predictionTime, indices.atEndOfTrip(),
@@ -309,6 +320,7 @@ public class PredictionGeneratorDefaultImpl implements PredictionGenerator, Pred
 
 					long predictionForNextStopCalculation = expectedDepartureTime;
 					long predictionForUser = expectedDepartureTimeWithoutStopWaitTime;
+					getMonitoring().sumMetric("PredictionGenerationStop");
 					return new IpcPrediction(avlReport, stopId, gtfsStopSeq,
 							trip, predictionForUser,
 							predictionForNextStopCalculation,
@@ -317,6 +329,7 @@ public class PredictionGeneratorDefaultImpl implements PredictionGenerator, Pred
 							freqStartTime, tripCounter,vehicleState.isCanceled());
 
 				} else {
+					getMonitoring().sumMetric("PredictionGenerationStop");
 					// Use the expected departure times, possibly adjusted for
 					// stop wait times
 					return new IpcPrediction(avlReport, stopId, gtfsStopSeq,
@@ -327,6 +340,7 @@ public class PredictionGeneratorDefaultImpl implements PredictionGenerator, Pred
 
 				}
 			} else {
+				getMonitoring().sumMetric("PredictionGenerationStop");
 				// Create and return the departure prediction for this
 				// non-wait-stop stop
 				return new IpcPrediction(avlReport, stopId, gtfsStopSeq, trip,
@@ -633,4 +647,84 @@ public class PredictionGeneratorDefaultImpl implements PredictionGenerator, Pred
 	public boolean hasDataForPath(Indices indices, AvlReport avlReport) {
 		return true;
 	}
+
+	/**
+	 * for the prediction calculate the scheduled arrival and return that
+	 * as millseconds since epoch
+	 * @param prediction
+	 * @return
+	 */
+	public static Long getScheduledArrivalTime(IpcPrediction prediction) {
+		long tripStartTime = prediction.getTripStartEpochTime();
+		long serviceDay = Time.getStartOfDay(new Date(tripStartTime));
+
+		int index = prediction.getGtfsStopSeq();
+		if (index < prediction.getTrip().getScheduleTimes().size()) {
+			long epochInMillis = serviceDay
+					+ prediction.getTrip().getScheduleTimes().get(index).getTime()
+					* Time.MS_PER_SEC;
+			return epochInMillis;
+		}
+		return null; // we may be unscheduled or at end of trip
+	}
+
+	/**
+	 * Test if vehicle is running early (negative schedule deviation)
+	 * such that it has already served a stop that is scheduled in the future.
+	 * GTFS-RT spec wants these prediction although per the codebase they are
+	 * considered historical
+	 * @param currentPrediction prediction to consider
+	 * @param currentTime reference time for comparison
+	 * @return true if prediction is in past and stop is scheduled in future
+	 */
+	public static boolean isHistoricalPredictionForFutureStop(IpcPrediction currentPrediction,
+															  long currentTime) {
+
+		// is prediction in past
+		if (currentPrediction.getPredictionTime() < currentTime) {
+			Long scheduledArrivalTime = getScheduledArrivalTime(currentPrediction);
+			// if we have a schedule associated with prediction
+			if (scheduledArrivalTime != null) {
+				long scheduleDeviation = currentPrediction.getPredictionTime() - scheduledArrivalTime;
+				long deltaArrivalFuture = scheduledArrivalTime - currentTime;
+				if (scheduleDeviation < 0 // bus running early
+						&& deltaArrivalFuture > 0 // stop in future
+						&& deltaArrivalFuture < 60 * Time.MS_PER_MIN) { // stop not too far in future
+					logger.debug("holding onto prediction for vehicle " + currentPrediction.getVehicleId()
+							+ " on trip " + currentPrediction.getTripId()
+							+ " with arrival " + new Date(scheduledArrivalTime)
+							+ " and age " + Time.elapsedTimeStr(currentTime - currentPrediction.getAvlTime())
+							+ " but prediction " + new Date(currentPrediction.getPredictionTime())
+							+ "(" + currentPrediction.getPredictionTime() + ")");
+
+					long age = currentTime - currentPrediction.getAvlTime();
+					// special case:  prune extremely old data relative to AVL age
+					if (age > maxAgeOfHistoricalPredictions.getValue() * Time.MS_PER_MIN // past config threshold
+							&& currentPrediction.getDelay() != null // trip has schedule deviation
+							&& age > currentPrediction.getDelay() * -Time.MS_PER_SEC) { // record is older than schedule deviation
+						logger.debug("expiring old prediction for vehicle "
+								+ currentPrediction.getVehicleId() + " that is "
+								+ Time.elapsedTimeStr(currentTime - currentPrediction.getAvlTime())
+								+ " old");
+						return false;
+					} else {
+						return true;
+					}
+				}
+			}
+		}
+		return false;
+	}
+
+
+	/**
+	 * lazy load Cloudwatch Monitoring service.
+	 * @return
+	 */
+	protected CloudwatchService getMonitoring() {
+		if (monitoring == null)
+			monitoring = CloudwatchService.getInstance();
+		return monitoring;
+	}
+
 }
