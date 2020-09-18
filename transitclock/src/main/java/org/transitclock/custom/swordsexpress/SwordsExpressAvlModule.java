@@ -29,6 +29,8 @@ public class SwordsExpressAvlModule extends PollUrlAvlModule {
 	@Override
 	protected Collection<AvlReport> processData(InputStream in) throws Exception {
 		
+		Collection<AvlReport> reports = new ArrayList<AvlReport>();
+		
 		String json=this.getJsonString(in);
 		Collection<AvlReport> avlReportsReadIn = new ArrayList<AvlReport>();
 		JSONArray array = new JSONArray(json);

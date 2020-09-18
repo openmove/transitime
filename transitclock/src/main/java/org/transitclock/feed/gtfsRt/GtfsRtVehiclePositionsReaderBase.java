@@ -17,27 +17,20 @@
 
 package org.transitclock.feed.gtfsRt;
 
-import java.io.InputStream;
-import java.net.URI;
-import java.net.URL;
-
-
-
+import com.google.protobuf.CodedInputStream;
+import com.google.transit.realtime.GtfsRealtime.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.transitclock.config.StringConfigValue;
 import org.transitclock.db.structs.AvlReport;
 import org.transitclock.db.structs.AvlReport.AssignmentType;
 import org.transitclock.utils.IntervalTimer;
 import org.transitclock.utils.MathUtils;
-import org.transitclock.utils.Time;
 
-import com.google.protobuf.CodedInputStream;
-import com.google.transit.realtime.GtfsRealtime.FeedEntity;
-import com.google.transit.realtime.GtfsRealtime.FeedMessage;
-import com.google.transit.realtime.GtfsRealtime.Position;
-import com.google.transit.realtime.GtfsRealtime.TripDescriptor;
-import com.google.transit.realtime.GtfsRealtime.VehicleDescriptor;
-import com.google.transit.realtime.GtfsRealtime.VehiclePosition;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URI;
+import java.net.URL;
 
 /**
  * Reads in GTFS-realtime Vehicle Positions file and converts them into List of
@@ -49,6 +42,17 @@ import com.google.transit.realtime.GtfsRealtime.VehiclePosition;
  * 
  */
 public abstract class GtfsRtVehiclePositionsReaderBase {
+
+	private static StringConfigValue gtfsRealtimeHeaderKey =
+			new StringConfigValue("transitclock.avl.apiKeyHeader",
+					null,
+					"api key header value if necessary, null if not needed");
+
+	private static StringConfigValue gtfsRealtimeHeaderValue =
+			new StringConfigValue("transitclock.avl.apiKeyValue",
+					null,
+					"api key value if necessary, null if not needed");
+
 
 	private final String urlString;
 	
@@ -120,7 +124,7 @@ public abstract class GtfsRtVehiclePositionsReaderBase {
 	private void processMessage(FeedMessage message) {
 		logger.info("Processing each individual AvlReport...");
 		IntervalTimer timer = new IntervalTimer();
-		
+
 		// For each entity/vehicle process the data
 		int counter = 0;
 		for (FeedEntity entity : message.getEntityList()) {
@@ -199,17 +203,14 @@ public abstract class GtfsRtVehiclePositionsReaderBase {
 			if (vehicle.hasTrip()) {
 				TripDescriptor tripDescriptor = vehicle.getTrip();
 
-				
-				if (tripDescriptor.hasRouteId()) {
-					avlReport.setAssignment(tripDescriptor.getRouteId(), 
-							AssignmentType.ROUTE_ID);
-				}
-				
 				if (tripDescriptor.hasTripId()) {
-					avlReport.setAssignment(tripDescriptor.getTripId(), 
+					avlReport.setAssignment(tripDescriptor.getTripId(),
 							AssignmentType.TRIP_ID);
 				}
-
+				else if (tripDescriptor.hasRouteId()) {
+					avlReport.setAssignment(tripDescriptor.getRouteId(),
+							AssignmentType.ROUTE_ID);
+				}
 			
 			}
 			
@@ -219,8 +220,8 @@ public abstract class GtfsRtVehiclePositionsReaderBase {
 			handleAvlReport(avlReport);
 
 			++counter;
-		  }
-		
+	  	}
+
 		logger.info("Successfully processed {} AVL reports from " +
 				"GTFS-realtime feed in {} msec",
 				counter, timer.elapsedMsec());
@@ -245,16 +246,27 @@ public abstract class GtfsRtVehiclePositionsReaderBase {
 			
 			URI uri = new URI(urlString);
 			URL url = uri.toURL();
-			
+
+			HttpURLConnection
+					connection = (HttpURLConnection) url.openConnection();
+
+			if (gtfsRealtimeHeaderKey.getValue() != null &&
+					gtfsRealtimeHeaderValue.getValue() != null) {
+				connection.addRequestProperty(gtfsRealtimeHeaderKey.getValue(), gtfsRealtimeHeaderValue.getValue());
+				connection.addRequestProperty("Cache-Control", "no-cache");
+			}
+
+
 			// Create a CodedInputStream instead of just a regular InputStream
 			// so that can change the size limit. Otherwise if file is greater
 			// than 64MB get an exception.
-			InputStream inputStream = url.openStream();
+			InputStream inputStream = connection.getInputStream();
 			CodedInputStream codedStream = 
 					CodedInputStream.newInstance(inputStream);
 			// What to use instead of default 64MB limit
 			final int GTFS_SIZE_LIMIT = 200000000;
-			codedStream.setSizeLimit(GTFS_SIZE_LIMIT);	
+			codedStream.setSizeLimit(GTFS_SIZE_LIMIT);
+
 			
 			// Actual read in the data into a protobuffer FeedMessage object.
 			// Would prefer to do this one VehiclePosition at a time using

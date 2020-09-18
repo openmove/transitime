@@ -16,19 +16,7 @@
  */
 package org.transitclock.applications;
 
-import java.io.PrintWriter;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
-import java.util.TimeZone;
-
-import org.apache.commons.cli.BasicParser;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.OptionBuilder;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
+import org.apache.commons.cli.*;
 import org.apache.commons.lang3.time.DateUtils;
 import org.hibernate.Session;
 import org.slf4j.Logger;
@@ -39,13 +27,13 @@ import org.transitclock.configData.AgencyConfig;
 import org.transitclock.configData.CoreConfig;
 import org.transitclock.core.ServiceUtils;
 import org.transitclock.core.TimeoutHandlerModule;
+import org.transitclock.core.dataCache.CacheTask;
+import org.transitclock.core.dataCache.ParallelProcessor;
 import org.transitclock.core.dataCache.PredictionDataCache;
 import org.transitclock.core.dataCache.StopArrivalDepartureCacheFactory;
 import org.transitclock.core.dataCache.TripDataHistoryCacheFactory;
 import org.transitclock.core.dataCache.VehicleDataCache;
 import org.transitclock.core.dataCache.ehcache.CacheManagerFactory;
-import org.transitclock.core.dataCache.ehcache.StopArrivalDepartureCache;
-import org.transitclock.core.dataCache.ehcache.scheduled.TripDataHistoryCache;
 import org.transitclock.core.dataCache.frequency.FrequencyBasedHistoricalAverageCache;
 import org.transitclock.core.dataCache.scheduled.ScheduleBasedHistoricalAverageCache;
 import org.transitclock.db.hibernate.DataDbLogger;
@@ -53,20 +41,21 @@ import org.transitclock.db.hibernate.HibernateUtils;
 import org.transitclock.db.structs.ActiveRevisions;
 import org.transitclock.db.structs.Agency;
 import org.transitclock.gtfs.DbConfig;
-import org.transitclock.ipc.servers.CacheQueryServer;
-import org.transitclock.ipc.servers.CommandsServer;
-import org.transitclock.ipc.servers.ConfigServer;
-import org.transitclock.ipc.servers.HoldingTimeServer;
-import org.transitclock.ipc.servers.PredictionAnalysisServer;
-import org.transitclock.ipc.servers.PredictionsServer;
-import org.transitclock.ipc.servers.ServerStatusServer;
-import org.transitclock.ipc.servers.VehiclesServer;
+import org.transitclock.ipc.servers.*;
 import org.transitclock.modules.Module;
 import org.transitclock.monitoring.PidFile;
 import org.transitclock.utils.SettableSystemTime;
-import org.transitclock.utils.SystemTime;
 import org.transitclock.utils.SystemCurrentTime;
+import org.transitclock.utils.SystemTime;
 import org.transitclock.utils.Time;
+
+import java.io.PrintWriter;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+import java.util.TimeZone;
 
 /**
  * The main class for running a Transitime Core real-time data processing
@@ -103,6 +92,7 @@ public class Core {
 	static {
 		ConfigFileReader.processConfig();
 	}
+
 	private static StringConfigValue cacheReloadStartTimeStr =
 			new StringConfigValue("transitclock.core.cacheReloadStartTimeStr",
 					"",
@@ -123,12 +113,14 @@ public class Core {
 	 *
 	 * @param agencyId
 	 */
-	public Core(String agencyId) {
+	private Core(String agencyId) {
 		// Determine configuration rev to use. If one specified on command
 		// line, use it. If not, then use revision stored in db.
 		int configRev;
 		if (configRevStr != null) {
 			// Use config rev from command line
+
+
 
 			configRev = Integer.parseInt(configRevStr);
 		} else {
@@ -303,7 +295,7 @@ public class Core {
 	/**
 	 * For setting the system time when in playback or batch mode.
 	 *
-	 * @param systemTime
+	 * @param systemEpochTime
 	 */
 	public void setSystemTime(long systemEpochTime) {
 		this.systemTime = new SettableSystemTime(systemEpochTime);
@@ -393,6 +385,9 @@ public class Core {
 		}
 	}
 
+
+
+    /* populate one day at a time to avoid memory issue */
 	/**
 	 * Start the RMI Servers so that clients can obtain data
 	 * on predictions, vehicles locations, etc.
@@ -409,93 +404,86 @@ public class Core {
 		CacheQueryServer.start(agencyId);
 		PredictionAnalysisServer.start(agencyId);
 		HoldingTimeServer.start(agencyId);
+		ReportingServer.start(agencyId);
 	}
-	
+
 	static private void populateCaches() throws Exception
 	{
 		Session session = HibernateUtils.getSession();
-
 		Date endDate=Calendar.getInstance().getTime();
-										
 
 		if(cacheReloadStartTimeStr.getValue().length()>0&&cacheReloadEndTimeStr.getValue().length()>0)
 		{
 			if(TripDataHistoryCacheFactory.getInstance()!=null)
 			{
-				logger.debug("Populating TripDataHistoryCache cache for period {} to {}",cacheReloadStartTimeStr.getValue(),cacheReloadEndTimeStr.getValue());
-				TripDataHistoryCacheFactory.getInstance().populateCacheFromDb(session, new Date(Time.parse(cacheReloadStartTimeStr.getValue()).getTime()), new Date(Time.parse(cacheReloadEndTimeStr.getValue()).getTime()));
+				logger.info("Populating TripDataHistoryCache cache for period {} to {}",cacheReloadStartTimeStr.getValue(),cacheReloadEndTimeStr.getValue());
+				TripDataHistoryCacheFactory.getInstance().populateCacheFromDb(session, new Date(Time.parse(cacheReloadStartTimeStr.getValue()).getTime()), new 		Date(Time.parse(cacheReloadEndTimeStr.getValue()).getTime()));
 			}
-			
+
 			if(FrequencyBasedHistoricalAverageCache.getInstance()!=null)
 			{
-				logger.debug("Populating FrequencyBasedHistoricalAverageCache cache for period {} to {}",cacheReloadStartTimeStr.getValue(),cacheReloadEndTimeStr.getValue());
+				logger.info("Populating FrequencyBasedHistoricalAverageCache cache for period {} to {}",cacheReloadStartTimeStr.getValue(),cacheReloadEndTimeStr.getValue());
 				FrequencyBasedHistoricalAverageCache.getInstance().populateCacheFromDb(session, new Date(Time.parse(cacheReloadStartTimeStr.getValue()).getTime()), new Date(Time.parse(cacheReloadEndTimeStr.getValue()).getTime()));
 			}
-			
+
 			if(StopArrivalDepartureCacheFactory.getInstance()!=null)
 			{
-				logger.debug("Populating StopArrivalDepartureCache cache for period {} to {}",cacheReloadStartTimeStr.getValue(),cacheReloadEndTimeStr.getValue());
+				logger.info("Populating StopArrivalDepartureCache cache for period {} to {}",cacheReloadStartTimeStr.getValue(),cacheReloadEndTimeStr.getValue());
 				StopArrivalDepartureCacheFactory.getInstance().populateCacheFromDb(session, new Date(Time.parse(cacheReloadStartTimeStr.getValue()).getTime()), new Date(Time.parse(cacheReloadEndTimeStr.getValue()).getTime()));
 			}
-			/*
-			if(ScheduleBasedHistoricalAverageCache.getInstance()!=null)
-			{
-				logger.debug("Populating ScheduleBasedHistoricalAverageCache cache for period {} to {}",cacheReloadStartTimeStr.getValue(),cacheReloadEndTimeStr.getValue());
-				ScheduleBasedHistoricalAverageCache.getInstance().populateCacheFromDb(session, new Date(Time.parse(cacheReloadStartTimeStr.getValue()).getTime()), new Date(Time.parse(cacheReloadEndTimeStr.getValue()).getTime()));
-			}
-			*/
 		}else
 		{
+			ParallelProcessor pp = new ParallelProcessor();
+			pp.startup();
 			for(int i=0;i<CoreConfig.getDaysPopulateHistoricalCache();i++)
 			{
 				Date startDate=DateUtils.addDays(endDate, -1);
 
 				if(TripDataHistoryCacheFactory.getInstance()!=null)
 				{
-					logger.debug("Populating TripDataHistoryCache cache for period {} to {}",startDate,endDate);
-					TripDataHistoryCacheFactory.getInstance().populateCacheFromDb(session, startDate, endDate);
+					CacheTask ct = new CacheTask(startDate, endDate, CacheTask.Type.TripDataHistoryCacheFactory);
+					pp.enqueue(ct);
+				}
+
+				// Only need to populate two days worth of stop arrival departure cache
+				if(i < 2 && StopArrivalDepartureCacheFactory.getInstance()!=null)
+				{
+					CacheTask ct = new CacheTask(startDate, endDate, CacheTask.Type.StopArrivalDepartureCacheFactory);
+					pp.enqueue(ct);
 				}
 
 				if(FrequencyBasedHistoricalAverageCache.getInstance()!=null)
 				{
-					logger.debug("Populating FrequencyBasedHistoricalAverageCache cache for period {} to {}",startDate,endDate);
-					FrequencyBasedHistoricalAverageCache.getInstance().populateCacheFromDb(session, startDate, endDate);
+					CacheTask ct = new CacheTask(startDate, endDate, CacheTask.Type.FrequencyBasedHistoricalAverageCache);
+					pp.enqueue(ct);
 				}
-
-				endDate=startDate;
-			}
-			
-			endDate=Calendar.getInstance().getTime();
-
-			/* populate one day at a time to avoid memory issue */
-			for(int i=0;i<CoreConfig.getDaysPopulateHistoricalCache();i++)
-			{
-				Date startDate=DateUtils.addDays(endDate, -1);
-				if(StopArrivalDepartureCacheFactory.getInstance()!=null)
-				{
-					logger.debug("Populating StopArrivalDepartureCache cache for period {} to {}",startDate,endDate);
-					StopArrivalDepartureCacheFactory.getInstance().populateCacheFromDb(session, startDate, endDate);
-				}
-				
-				endDate=startDate;
-			}
-			endDate=Calendar.getInstance().getTime();
-			
-
-			for(int i=0;i<CoreConfig.getDaysPopulateHistoricalCache();i++)
-			{
-				Date startDate=DateUtils.addDays(endDate, -1);
 
 				if(ScheduleBasedHistoricalAverageCache.getInstance()!=null)
 				{
-					logger.debug("Populating ScheduleBasedHistoricalAverageCache cache for period {} to {}",startDate,endDate);
-					ScheduleBasedHistoricalAverageCache.getInstance().populateCacheFromDb(session, startDate, endDate);
+					CacheTask ct = new CacheTask(startDate, endDate, CacheTask.Type.ScheduleBasedHistoricalAverageCache);
+					pp.enqueue(ct);
 				}
 
 				endDate=startDate;
 			}
-		}		
-	
+			// don't continue until caches are ready!
+			while (!pp.isDone()) {
+				try {
+					logger.info("waiting on caching to complete with {} in run queue, {} in wait queue ", pp.getRunQueueSize(), pp.getWaitQueueSize() );
+					Thread.sleep(10 * 1000);
+				} catch (InterruptedException ie) {
+					return;
+				}
+			}
+			// clean up after ourselves -- releasing threads
+			pp.shutdown();
+		}
+
+	}
+
+	private static String getDateAsString(LocalDateTime date){
+		DateTimeFormatter formatter = DateTimeFormatter.ofPattern(Time.getDateTimePattern());
+		return date.format(formatter);
 	}
 
 	/**
@@ -511,7 +499,7 @@ public class Core {
 				e1.printStackTrace();
 				System.exit(-1);
 			}
-			
+
 			// Write pid file so that monit can automatically start
 			// or restart this application
 			PidFile.createPidFile(CoreConfig.getPidFileDirectory()
@@ -520,22 +508,18 @@ public class Core {
 			// For making sure logger configured properly
 			outputLoggerStatus();
 
-			Session session = HibernateUtils.getSession();
-
-			Date endDate=Calendar.getInstance().getTime();
-
-
-			// populate caches to be used by prediction methods.
-			try {
-				populateCaches();								
-			} catch (Exception e) {
-				logger.error("Failed to populate cache.", e);
+			if (CoreConfig.getFillHistoricalCaches()){
+				try {
+					populateCaches();
+				} catch (Exception e) {
+					logger.error("Failed to populate cache.", e);
+				}
 			}
 
 			// Close cache if shutting down.
-			Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() 
+			Runtime.getRuntime().addShutdownHook(new Thread(new Runnable()
 			{
-		            public void run() 
+		            public void run()
 		            {
 		            	try {
 		            		System.out.println("Calling shutdown hook.");
@@ -549,21 +533,23 @@ public class Core {
 							e.printStackTrace();
 							logger.error("Cache close failed...");
 							logger.error(e.getMessage(),e);
-						}		            	
+						}
 		            }
 		    }));
-			
+
 			// Initialize the core now
 			createCore();
 
-
 			// Start any optional modules.
 			List<String> optionalModuleNames = CoreConfig.getOptionalModules();
-			if (optionalModuleNames.size() > 0)
+			if (optionalModuleNames.size() > 0) {
 				logger.info("Starting up optional modules specified via " +
 						"transitclock.modules.optionalModulesList param:");
-			else
+			}
+			else {
 				logger.info("No optional modules to start up.");
+			}
+
 			for (String moduleName : optionalModuleNames) {
 				logger.info("Starting up optional module " + moduleName);
 				Module.start(moduleName);

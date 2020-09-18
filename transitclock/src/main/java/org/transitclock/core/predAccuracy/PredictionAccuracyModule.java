@@ -222,13 +222,12 @@ public class PredictionAccuracyModule extends Module {
 			  logger.error("possible sql exception {}", t, t);
 			} finally {
 			  // if we have an exception, we still need to wait to be nice to the cpu
-	       // Wait appropriate amount of time till poll again
-        long elapsedMsec = timer.elapsedMsec();
-        long sleepTime = 
-            getTimeBetweenPollingPredictionsMsec() - elapsedMsec;
-        if (sleepTime > 0)
-          Time.sleep(sleepTime);
-
+	       	  // Wait appropriate amount of time till poll again
+              long elapsedMsec = timer.elapsedMsec();
+              long sleepTime = 
+                      getTimeBetweenPollingPredictionsMsec() - elapsedMsec;
+              if (sleepTime > 0)
+                  Time.sleep(sleepTime);
 			}
 		}
 	}
@@ -471,7 +470,6 @@ public class PredictionAccuracyModule extends Module {
 		if (predsList == null || predsList.isEmpty())
 		{
 			logger.debug("No matching predictions for {}", arrivalDeparture);
-			//printPredictionsMap(predictionMap, arrivalDeparture);
 			return;			
 		}
 		

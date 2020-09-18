@@ -74,7 +74,7 @@ public class ServiceUtils {
 
 		Agency agency = dbConfig.getFirstAgency();
 		this.calendar =
-				agency != null ? 
+				agency != null ?
 						new GregorianCalendar(agency.getTimeZone())
 						: new GregorianCalendar();
 
@@ -172,9 +172,9 @@ public class ServiceUtils {
 	/**
 	 * Caching version fo getServiceIdsForDay.  Assumes epochTime can be distilled to
 	 * a serviceDate.  Note that boundary conditions may exist where serviceDate guess is wrong.
-	 * 
+	 *
 	 * TODO as is this cache will grow without bounds, but the data should be small
-	 * 
+	 *
 	 */
 	public List<String> getServiceIdsForDay(Date epochTime) {
 		Date serviceDate = getStartOfDay(epochTime);
@@ -185,7 +185,7 @@ public class ServiceUtils {
 		serviceIdsForDate.put(serviceDate, serviceIds);
 		return serviceIds;
 	}
-	
+
 	private Date getStartOfDay(Date epochTime) {
 		java.util.Calendar c = java.util.Calendar.getInstance();
 		c.setTime(epochTime);
@@ -234,10 +234,8 @@ public class ServiceUtils {
 		
 		// Go through calendar_dates to see if there is special service for 
 		// this date. Add or remove the special service.
-
-		List<CalendarDate> calendarDatesForNow = 
+		List<CalendarDate> calendarDatesForNow =
 				dbConfig.getCalendarDates(epochTime);
-
 		if (calendarDatesForNow != null) {
 			for (CalendarDate calendarDate : calendarDatesForNow) {
 				// Handle special service for this date
@@ -358,4 +356,22 @@ public class ServiceUtils {
 		// Return the results
 		return currentCalendars;
 	}
+
+	public static boolean isServiceTypeActiveForServiceCal(ServiceType serviceType, Calendar calendar){
+		if(serviceType.equals(ServiceType.SUNDAY) && calendar.getSunday()){
+			return Boolean.TRUE;
+		} else if(serviceType.equals(ServiceType.SUNDAY) && calendar.getSunday()) {
+			return Boolean.TRUE;
+		} else if(serviceType.equals(ServiceType.WEEKDAY) && (
+				calendar.getMonday() ||
+				calendar.getTuesday() ||
+				calendar.getWednesday() ||
+				calendar.getThursday() ||
+				calendar.getFriday()
+		)){
+			return Boolean.TRUE;
+		}
+		return Boolean.FALSE;
+	}
+
 }

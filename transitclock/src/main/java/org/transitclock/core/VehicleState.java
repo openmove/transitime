@@ -16,32 +16,18 @@
  */
 package org.transitclock.core;
 
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Objects;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.transitclock.configData.CoreConfig;
+import org.transitclock.core.blockAssigner.BlockAssigner;
 import org.transitclock.core.dataCache.VehicleStateManager;
-import org.transitclock.db.structs.Arrival;
-import org.transitclock.db.structs.ArrivalDeparture;
-import org.transitclock.db.structs.AvlReport;
-import org.transitclock.db.structs.Block;
-import org.transitclock.db.structs.Headway;
-import org.transitclock.db.structs.HoldingTime;
-import org.transitclock.db.structs.Location;
-import org.transitclock.db.structs.StopPath;
-import org.transitclock.db.structs.Trip;
-import org.transitclock.db.structs.VectorWithHeading;
+import org.transitclock.db.structs.*;
 import org.transitclock.db.structs.AvlReport.AssignmentType;
 import org.transitclock.ipc.data.IpcPrediction;
 import org.transitclock.utils.StringUtils;
 import org.transitclock.utils.Time;
+
+import java.util.*;
 
 /**
  * Keeps track of vehicle state including its block assignment, where it
@@ -79,6 +65,7 @@ public class VehicleState {
 	// So can make sure that departure time is after the arrival time
 	private Arrival arrivalToStoreToDb;
 	private long lastArrivalTime = 0;
+	private Date lastAvlTime = null;
 
 	// So can keep track of whether assigning vehicle to same block that
 	// just got unassigned for. The unassignedTime member is the time when the
@@ -100,7 +87,6 @@ public class VehicleState {
 	private HoldingTime holdingTime=null;
 	//Used for schedPred AVL. Identify if trip is canceled.
 	private boolean isCanceled;
-
 
 	public Headway getHeadway() {
 		return headway;
@@ -1012,6 +998,14 @@ public class VehicleState {
 		return lastArrivalTime;
 	}
 
+	public Date getLastAvlTime() {
+		return lastAvlTime;
+	}
+
+	public void setLastAvlTime(Date lastAvlTime) {
+		this.lastAvlTime = lastAvlTime;
+	}
+
 	public int getBadAssignmentsInARow() {
 		return badAssignmentsInARow;
 	}
@@ -1027,6 +1021,7 @@ public class VehicleState {
 	public boolean isDelayed() {
 		return isDelayed;
 	}
+
 	public void setCanceled(boolean isCanceled) {
 		this.isCanceled=isCanceled;
 
@@ -1034,6 +1029,5 @@ public class VehicleState {
 	public boolean isCanceled() {
 		return isCanceled;
 	}
-
 
 }

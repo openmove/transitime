@@ -56,6 +56,7 @@ public class AvlSqsClientModule extends Module {
   private final static int MAX_THREADS = 100;
 
   private static final int DEFAULT_MESSAGE_LOG_FREQUENCY = 10000;
+
   
   private static IntegerConfigValue avlQueueSize = 
       new IntegerConfigValue("transitclock.avl.jmsQueueSize", 350,
@@ -72,7 +73,12 @@ public class AvlSqsClientModule extends Module {
           "large systems with lots of vehicles then should use " +
           "multiple threads, such as 3-5 so that more of the cores " +
           "are used. Only for when JMS is used.");
-  
+
+  private static IntegerConfigValue jmsPauseTimeInSeconds =
+          new IntegerConfigValue("transitclock.avl.jmsPauseTimeInSeconds", 20,
+                  "How long to block for the next message.");
+
+
   private static IntegerConfigValue messageLogFrequency =
       new IntegerConfigValue("transitclock.avl.messageLogFrequency", 
           DEFAULT_MESSAGE_LOG_FREQUENCY, 
@@ -279,6 +285,7 @@ public class AvlSqsClientModule extends Module {
         while (!Thread.interrupted()) {
           try {
             ReceiveMessageRequest request = new ReceiveMessageRequest(_url);
+            request.setWaitTimeSeconds(jmsPauseTimeInSeconds.getValue());
             List<Message> messages = _sqs.receiveMessage(request).getMessages();
             try {
               _receiveQueue.addAll(messages);
@@ -288,11 +295,11 @@ public class AvlSqsClientModule extends Module {
             
             if (!messages.isEmpty()) {           
               try {
-                // we only need to ack receipt of the request, not each message
-              _acknowledgeQueue.add(messages.get(0));
-            } catch (IllegalStateException ise) {
-              logger.error("dropping ack {} as queue is full: ",  messages, ise);
-            }
+                  // we only need to ack receipt of the request, not each message
+                _acknowledgeQueue.add(messages.get(0));
+              } catch (IllegalStateException ise) {
+                logger.error("dropping ack {} as queue is full: ",  messages, ise);
+              }
             }
           } catch (Exception any) {
             logger.error("exception receiving: ", any);

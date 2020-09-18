@@ -16,18 +16,17 @@
  */
 package org.transitclock.ipc.data;
 
+import org.transitclock.applications.Core;
+import org.transitclock.db.structs.AvlReport;
+import org.transitclock.db.structs.Trip;
+import org.transitclock.utils.StringUtils;
+import org.transitclock.utils.Time;
+
 import java.io.IOException;
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.Date;
-
-import org.transitclock.applications.Core;
-import org.transitclock.db.structs.AvlReport;
-import org.transitclock.db.structs.Trip;
-import org.transitclock.ipc.data.IpcPrediction.ArrivalOrDeparture;
-import org.transitclock.utils.StringUtils;
-import org.transitclock.utils.Time;
 
 /**
  * Contains information on a single prediction. For providing info to client.
@@ -81,11 +80,10 @@ public class IpcPrediction implements Serializable {
 	private final boolean isArrival;
 	private final Integer delay;
 	private boolean isCanceled;
-	
+
 	public boolean isCanceled() {
 		return isCanceled;
 	}
-
 
 	private final long freqStartTime;
 	private final int tripCounter;
@@ -96,6 +94,8 @@ public class IpcPrediction implements Serializable {
 	private static final long serialVersionUID = 7264507678733060173L;
 
 	public enum ArrivalOrDeparture {ARRIVAL, DEPARTURE};
+
+
 	
 	/********************** Member Functions **************************/
 
@@ -185,8 +185,8 @@ public class IpcPrediction implements Serializable {
 			long creationTime, long tripStartEpochTime,
 			boolean affectedByWaitStop, String driverId, short passengerCount,
 			float passengerFullness, boolean isDelayed,
-
-			boolean lateAndSubsequentTripSoMarkAsUncertain, boolean isArrival,  Integer delay, Long freqStartTime, int tripCounter,boolean isCanceled) {
+			boolean lateAndSubsequentTripSoMarkAsUncertain, boolean isArrival,  Integer delay,
+		    Long freqStartTime, int tripCounter,boolean isCanceled) {
 
 		this.vehicleId = vehicleId;
 		this.routeId = routeId;
@@ -330,7 +330,6 @@ public class IpcPrediction implements Serializable {
 
 			stream.writeObject(delay);
 			stream.writeBoolean(isCanceled);
-
 		}
 
 		/*
@@ -390,8 +389,8 @@ public class IpcPrediction implements Serializable {
 					tripId, tripPatternId, isTripUnscheduled, blockId, predictionTime, 0,
 					atEndOfTrip, schedBasedPred, avlTime, creationTime,
 					tripStartEpochTime, affectedByWaitStop, driverId,
-					passengerCount, passengerFullness, isDelayed,
-					lateAndSubsequentTripSoMarkAsUncertain, isArrival, delay, freqStartTime, tripCounter,isCanceled);
+					passengerCount, passengerFullness, isDelayed, lateAndSubsequentTripSoMarkAsUncertain,
+					isArrival, delay, freqStartTime, tripCounter,isCanceled);
 
 		}
 	}

@@ -1,10 +1,5 @@
 package org.transitclock.core.predictiongenerator.scheduled.traveltime.kalman;
 
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
-
 import org.apache.commons.lang3.time.DateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,35 +7,20 @@ import org.transitclock.applications.Core;
 import org.transitclock.config.BooleanConfigValue;
 import org.transitclock.config.DoubleConfigValue;
 import org.transitclock.config.IntegerConfigValue;
-import org.transitclock.core.HeadwayDetails;
-import org.transitclock.core.Indices;
-import org.transitclock.core.PredictionGeneratorDefaultImpl;
-import org.transitclock.core.SpatialMatch;
-import org.transitclock.core.TemporalDifference;
-import org.transitclock.core.TravelTimeDetails;
-import org.transitclock.core.VehicleState;
-import org.transitclock.core.dataCache.ErrorCache;
-import org.transitclock.core.dataCache.ErrorCacheFactory;
-import org.transitclock.core.dataCache.KalmanError;
-import org.transitclock.core.dataCache.KalmanErrorCacheKey;
-import org.transitclock.core.dataCache.StopPathPredictionCache;
-import org.transitclock.core.dataCache.TripDataHistoryCacheFactory;
-import org.transitclock.core.dataCache.TripDataHistoryCacheInterface;
-import org.transitclock.core.dataCache.VehicleStateManager;
-import org.transitclock.core.dataCache.ehcache.scheduled.TripDataHistoryCache;
-import org.transitclock.core.dataCache.jcs.KalmanErrorCache;
+import org.transitclock.core.*;
+import org.transitclock.core.dataCache.*;
+import org.transitclock.core.predictiongenerator.HistoricalPredictionLibrary;
 import org.transitclock.core.predictiongenerator.PredictionComponentElementsGenerator;
-import org.transitclock.core.predictiongenerator.kalman.KalmanPrediction;
-import org.transitclock.core.predictiongenerator.kalman.KalmanPredictionResult;
-import org.transitclock.core.predictiongenerator.kalman.TripSegment;
-import org.transitclock.core.predictiongenerator.kalman.Vehicle;
-import org.transitclock.core.predictiongenerator.kalman.VehicleStopDetail;
-import org.transitclock.core.predictiongenerator.scheduled.average.HistoricalAveragePredictionGeneratorImpl;
+import org.transitclock.core.predictiongenerator.kalman.*;
 import org.transitclock.db.structs.AvlReport;
 import org.transitclock.db.structs.PredictionEvent;
 import org.transitclock.db.structs.PredictionForStopPath;
 import org.transitclock.db.structs.VehicleEvent;
 import org.transitclock.ipc.data.IpcPrediction;
+
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
 
 /**
  * @author Sean Óg Crudden This is a prediction generator that uses a Kalman
@@ -48,7 +28,7 @@ import org.transitclock.ipc.data.IpcPrediction;
  */
 public class KalmanPredictionGeneratorImpl extends PredictionGeneratorDefaultImpl
 		implements PredictionComponentElementsGenerator {
-	
+
 	private String alternative="PredictionGeneratorDefaultImpl";
 
 	/*
@@ -70,21 +50,21 @@ public class KalmanPredictionGeneratorImpl extends PredictionGeneratorDefaultImp
 	private static final DoubleConfigValue initialErrorValue = new DoubleConfigValue(
 			"transitclock.prediction.data.kalman.initialerrorvalue", new Double(100),
 			"Initial Kalman error value to use to start filter.");
-	
+
 	/* May be better to use the default implementation as it splits things down into segments. */
 	private static final BooleanConfigValue useKalmanForPartialStopPaths = new BooleanConfigValue (
-			"transitclock.prediction.data.kalman.usekalmanforpartialstoppaths", new Boolean(true), 
+			"transitclock.prediction.data.kalman.usekalmanforpartialstoppaths", new Boolean(true),
 			"Will use Kalman prediction to get to first stop of prediction."
 	);
-			
+
 	private static final IntegerConfigValue percentagePredictionMethodDifferenceneEventLog=new IntegerConfigValue(
 			"transitclock.prediction.data.kalman.percentagePredictionMethodDifferencene", new Integer(50),
 			"If the difference in prediction method estimates is greater than this percentage log a Vehicle Event");
-	
+
 	private static final IntegerConfigValue tresholdForDifferenceEventLog=new IntegerConfigValue(
 			"transitclock.prediction.data.kalman.tresholdForDifferenceEventLog", new Integer(60000),
 			"This is the threshold in milliseconds that the difference has to be over before it will consider the percentage difference.");
-				
+
 	private static final Logger logger = LoggerFactory.getLogger(KalmanPredictionGeneratorImpl.class);
 
 	/*
@@ -100,8 +80,8 @@ public class KalmanPredictionGeneratorImpl extends PredictionGeneratorDefaultImp
 		logger.debug("Calling Kalman prediction algorithm for : "+indices.toString());
 
 		long alternatePrediction = super.getTravelTimeForPath(indices, avlReport, vehicleState);
-		
-		
+
+
 		TripDataHistoryCacheInterface tripCache = TripDataHistoryCacheFactory.getInstance();
 
 		ErrorCache kalmanErrorCache = ErrorCacheFactory.getInstance();
@@ -111,7 +91,7 @@ public class KalmanPredictionGeneratorImpl extends PredictionGeneratorDefaultImp
 		VehicleState currentVehicleState = vehicleStateManager.getVehicleState(avlReport.getVehicleId());
 
 		try {
-			TravelTimeDetails travelTimeDetails = this.getLastVehicleTravelTime(currentVehicleState, indices);
+			TravelTimeDetails travelTimeDetails = HistoricalPredictionLibrary.getLastVehicleTravelTime(currentVehicleState, indices);
 
 
 			/*
@@ -125,7 +105,7 @@ public class KalmanPredictionGeneratorImpl extends PredictionGeneratorDefaultImp
 
 				Date nearestDay = DateUtils.truncate(avlReport.getDate(), Calendar.DAY_OF_MONTH);
 
-				List<TravelTimeDetails> lastDaysTimes = lastDaysTimes(tripCache, currentVehicleState.getTrip().getId(),currentVehicleState.getTrip().getDirectionId(),
+				List<TravelTimeDetails> lastDaysTimes = HistoricalPredictionLibrary.lastDaysTimes(tripCache, currentVehicleState.getTrip().getId(),currentVehicleState.getTrip().getDirectionId(),
 						indices.getStopPathIndex(), nearestDay, currentVehicleState.getTrip().getStartTime(),
 						maxKalmanDaysToSearch.getValue(), maxKalmanDays.getValue());
 
@@ -183,19 +163,19 @@ public class KalmanPredictionGeneratorImpl extends PredictionGeneratorDefaultImp
 						logger.debug("Setting Kalman error value: " + kalmanPredictionResult.getFilterError() + " for : "+ new KalmanErrorCacheKey(indices).toString());
 
 						kalmanErrorCache.putErrorValue(indices, kalmanPredictionResult.getFilterError());
-						
+
 						double percentageDifferecence = Math.abs(100 * ((predictionTime - alternatePrediction) / (double)alternatePrediction));
-						
+
 						if(((percentageDifferecence *  alternatePrediction)/100) > tresholdForDifferenceEventLog.getValue())
-						{						
+						{
 							if(percentageDifferecence > percentagePredictionMethodDifferenceneEventLog.getValue())
 							{
 								String description="Kalman predicts : "+predictionTime+" Super predicts : "+alternatePrediction;
 
 								logger.warn(description);
-								
-								PredictionEvent.create(avlReport, vehicleState.getMatch(), PredictionEvent.PREDICTION_VARIATION, description, 
-										travelTimeDetails.getArrival().getStopId(), 
+
+								PredictionEvent.create(avlReport, vehicleState.getMatch(), PredictionEvent.PREDICTION_VARIATION, description,
+										travelTimeDetails.getArrival().getStopId(),
 										travelTimeDetails.getDeparture().getStopId(),
 										travelTimeDetails.getArrival().getVehicleId(),
 										travelTimeDetails.getArrival().getTime(),
@@ -210,12 +190,12 @@ public class KalmanPredictionGeneratorImpl extends PredictionGeneratorDefaultImp
 						{
 							PredictionForStopPath predictionForStopPath=new PredictionForStopPath(vehicleState.getVehicleId(), new Date(Core.getInstance().getSystemTime()), new Double(new Long(predictionTime).intValue()), indices.getTrip().getId(), indices.getStopPathIndex(), "KALMAN", true, null);
 							Core.getInstance().getDbLogger().add(predictionForStopPath);
-							StopPathPredictionCache.getInstance().putPrediction(predictionForStopPath);
+							StopPathPredictionCacheFactory.getInstance().putPrediction(predictionForStopPath);
 						}
 						return predictionTime;
 
 					} catch (Exception e) {
-						logger.error(e.getMessage(), e);
+						logger.error("Exception {}",  e.toString(), e);
 					}
 				}
 			}
@@ -228,24 +208,24 @@ public class KalmanPredictionGeneratorImpl extends PredictionGeneratorDefaultImp
 
 	@Override
 	public long expectedTravelTimeFromMatchToEndOfStopPath(AvlReport avlReport, SpatialMatch match) {
-		
+
 		if(useKalmanForPartialStopPaths.getValue().booleanValue())
-		{		
+		{
 			VehicleStateManager vehicleStateManager = VehicleStateManager.getInstance();
-	
-			VehicleState currentVehicleState = vehicleStateManager.getVehicleState(avlReport.getVehicleId());	
-			
+
+			VehicleState currentVehicleState = vehicleStateManager.getVehicleState(avlReport.getVehicleId());
+
 			long fulltime = this.getTravelTimeForPath(match.getIndices(), avlReport, currentVehicleState);
-			
+
 			double distanceAlongStopPath = match.getDistanceAlongStopPath();
-			
+
 			double stopPathLength =
 					match.getStopPath().getLength();
-			
+
 			long remainingtime = (long) (fulltime * ((stopPathLength-distanceAlongStopPath)/stopPathLength));
-			
+
 			logger.debug("Using Kalman for first stop path {} with value {} instead of {}.", match.getIndices(), remainingtime, super.expectedTravelTimeFromMatchToEndOfStopPath(avlReport, match));
-					
+
 			return remainingtime;
 		}else
 		{
@@ -259,7 +239,7 @@ public class KalmanPredictionGeneratorImpl extends PredictionGeneratorDefaultImp
 		try {
 			result = cache.getErrorValue(indices);
 			if(result==null)
-			{		
+			{
 				logger.debug("Kalman Error value set to default: "+initialErrorValue.getValue() +" for key: "+new KalmanErrorCacheKey(indices).toString());
 				result=new KalmanError(initialErrorValue.getValue());
 			}
@@ -268,14 +248,14 @@ public class KalmanPredictionGeneratorImpl extends PredictionGeneratorDefaultImp
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		return null;
+		return new KalmanError(initialErrorValue.getValue());
 	}
 
 	@Override
 	public long getStopTimeForPath(Indices indices, AvlReport avlReport, VehicleState vehicleState) {
 		long result=super.getStopTimeForPath(indices, avlReport, vehicleState);
-		
+
 		return result;
-		
+
 	}
 }

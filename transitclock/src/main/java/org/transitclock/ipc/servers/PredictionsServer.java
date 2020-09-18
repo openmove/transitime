@@ -16,24 +16,26 @@
  */
 package org.transitclock.ipc.servers;
 
-import java.rmi.RemoteException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.transitclock.applications.Core;
+import org.transitclock.core.dataCache.CanceledTripKey;
+import org.transitclock.core.dataCache.SkippedStopsManager;
+import org.transitclock.ipc.data.IpcCanceledTrip;
+import org.transitclock.core.dataCache.CanceledTripManager;
 import org.transitclock.core.dataCache.PredictionDataCache;
 import org.transitclock.db.structs.Location;
 import org.transitclock.gtfs.StopsByLoc;
 import org.transitclock.gtfs.StopsByLoc.StopInfo;
 import org.transitclock.ipc.data.IpcPredictionsForRouteStopDest;
+import org.transitclock.ipc.data.IpcSkippedStop;
 import org.transitclock.ipc.interfaces.PredictionsInterface;
 import org.transitclock.ipc.rmi.AbstractServer;
 import org.transitclock.utils.IntervalTimer;
 import org.transitclock.utils.Time;
+
+import java.rmi.RemoteException;
+import java.util.*;
 
 /**
  * Implements the PredictionsInterface interface on the server side such that a
@@ -129,6 +131,23 @@ public class PredictionsServer
 		return predictionDataCache.getAllPredictions(Integer.MAX_VALUE, 
 				maxSystemTimeForPrediction);
 	}
+
+	/* (non-Javadoc)
+	 * @see org.transitclock.ipc.interfaces.PredictionsInterface#getAllCanceledTrips()
+	 */
+	@Override
+	public HashMap<CanceledTripKey, IpcCanceledTrip> getAllCanceledTrips(){
+		return CanceledTripManager.getInstance().getAll();
+	}
+
+	/* (non-Javadoc)
+	 * @see org.transitclock.ipc.interfaces.PredictionsInterface#getAllSkippedStops()
+	 */
+	@Override
+	public HashMap<String, HashSet<IpcSkippedStop>> getAllSkippedStops(){
+		return SkippedStopsManager.getInstance().getAll();
+	}
+
 
 	// If stops are relatively close then should order routes based on route
 	// order instead of distance.

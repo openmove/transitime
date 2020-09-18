@@ -56,6 +56,7 @@ public class GtfsFileProcessor {
 	private Date zipFileLastModifiedTime;
 	private final String unzipSubdirectory;
 	private String gtfsDirectoryName;
+	private String feedVersion;
 
 	// Optional command line info used for GtfsData class
 	private final String supplementDir;
@@ -71,8 +72,6 @@ public class GtfsFileProcessor {
 	private final boolean shouldDeleteRevs;
 	private final String notes;
 	private final boolean trimPathBeforeFirstStopOfTrip;
-	private double maxDistanceBetweenStops;
-	private boolean disableSpecialLoopBackToBeginningCase;
 
 	// Read in configuration files. This should be done statically before
 	// the logback LoggerFactory.getLogger() is called so that logback can
@@ -89,7 +88,7 @@ public class GtfsFileProcessor {
 
 	/**
 	 * Simple constructor. Stores the configurable parameters for this class.
-	 * Declared private since only used internally by createGtfsFileProcessor().
+	 * In main project, only used by createGtfsFileProcessor().
 	 * 
 	 * @param configFile
 	 * @param notes
@@ -110,8 +109,6 @@ public class GtfsFileProcessor {
 	 * @param shouldStoreNewRevs
 	 *            If true then will store the new config and travel times revs
 	 *            into ActiveRevisions table in db
-	 * @param maxDistanceBetweenStops 
-	 * @param disableSpecialLoopBackToBeginningCase 
 	 */
 	public GtfsFileProcessor(String configFile, String notes, String gtfsUrl,
 			String gtfsZipFileName, String unzipSubdirectory,
@@ -122,23 +119,18 @@ public class GtfsFileProcessor {
 			int defaultWaitTimeAtStopMsec, double maxSpeedKph,
 			double maxTravelTimeSegmentLength,
 			int configRev,
-			boolean shouldStoreNewRevs, boolean shouldDeleteRevs, boolean trimPathBeforeFirstStopOfTrip, double maxDistanceBetweenStops, boolean disableSpecialLoopBackToBeginningCase) {
+			boolean shouldStoreNewRevs, boolean shouldDeleteRevs, boolean trimPathBeforeFirstStopOfTrip) {
 		// Read in config params if command line option specified
-		
-			if (configFile != null) {
+		if (configFile != null) {
 			try {
 				// Read in the data from config file
-				
 				ConfigFileReader.processConfig(configFile);
 			} catch (Exception e) {
 				logger.error("Error reading in config file \"" + configFile
 						+ "\". Exiting program.", e);
 				System.exit(-1);
 			}
-			}
-		
-			
-		
+		}
 
 		this.gtfsUrl = gtfsUrl;
 		this.gtfsZipFileName = gtfsZipFileName;
@@ -158,8 +150,6 @@ public class GtfsFileProcessor {
 		this.shouldStoreNewRevs = shouldStoreNewRevs;
 		this.shouldDeleteRevs = shouldDeleteRevs;
 		this.trimPathBeforeFirstStopOfTrip = trimPathBeforeFirstStopOfTrip;
-		this.maxDistanceBetweenStops=maxDistanceBetweenStops;
-		this.disableSpecialLoopBackToBeginningCase=disableSpecialLoopBackToBeginningCase;
 	}
 
 	/********************** Member Functions **************************/
@@ -273,7 +263,6 @@ public class GtfsFileProcessor {
 	public void process() throws IllegalArgumentException {
 		// Gets the GTFS files from URL or from a zip file if need be.
 		// This also sets gtfsDirectoryName member
-		
 		obtainGtfsFiles();
 
 		// Set the timezone of the application so that times and dates will be
@@ -299,12 +288,10 @@ public class GtfsFileProcessor {
 						maxDistanceForEliminatingVertices,
 						defaultWaitTimeAtStopMsec, maxSpeedKph,
 						maxTravelTimeSegmentLength,
-						trimPathBeforeFirstStopOfTrip, titleFormatter,
-						maxDistanceBetweenStops,
-						disableSpecialLoopBackToBeginningCase);
+						trimPathBeforeFirstStopOfTrip, titleFormatter);
 		
 		gtfsData.processData();
-		
+
 		// Log possibly useful info
 		titleFormatter.logRegexesThatDidNotMakeDifference();
 
@@ -412,10 +399,6 @@ public class GtfsFileProcessor {
 		double maxStopToPathDistance =
 				getDoubleCommandLineOption("maxStopToPathDistance", 60.0,
 						commandLineArgs);
-		double maxDistanceBetweenStops =
-				getDoubleCommandLineOption("maxDistanceBetweenStops", 6000.0,
-						commandLineArgs);
-		boolean disableSpecialLoopBackToBeginningCase=commandLineArgs.hasOption("disableSpecialLoopBackToBeginningCase");
 		double maxDistanceForEliminatingVertices =
 				getDoubleCommandLineOption("maxDistanceForEliminatingVertices",
 						3.0, commandLineArgs);
@@ -447,8 +430,7 @@ public class GtfsFileProcessor {
 						maxTravelTimeSegmentLength,
 						configRev,
 						shouldStoreNewRevs, shouldDeleteRevs, 
-						trimPathBeforeFirstStopOfTrip,
-						maxDistanceBetweenStops,disableSpecialLoopBackToBeginningCase);
+						trimPathBeforeFirstStopOfTrip);
 
 		return processor;
 	}
@@ -606,7 +588,7 @@ public class GtfsFileProcessor {
 								+ "will have only a single travel time segment between "
 								+ "stops.")
 				.create("maxTravelTimeSegmentLength"));
-		options.addOption("disableSpecialLoopBackToBeginningCase",false,"Should disable loopBackToBeggining");
+
 		options.addOption("storeNewRevs", false,
 				"Stores the config and travel time revs into ActiveRevisions "
 						+ "in database.");
@@ -620,14 +602,6 @@ public class GtfsFileProcessor {
 				"For trimming off path from shapes.txt for before the first "
 						+ "stops of trips. Useful for when the shapes have problems "
 						+ "at the beginning, which is suprisingly common.");
-	
-		options.addOption(OptionBuilder
-				.hasArg()
-				.withArgName("maxDistanceBetweenStops")
-				.withDescription(
-				"Maximum distance that is expected to have between two consecutives stops."
-						+ " in meters. "
-				).create("maxDistanceBetweenStops"));
 
         options.addOption(
                 "integrationTest",

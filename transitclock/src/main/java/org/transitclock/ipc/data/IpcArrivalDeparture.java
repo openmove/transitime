@@ -1,14 +1,11 @@
 package org.transitclock.ipc.data;
 
-import java.io.Serializable;
-import java.lang.reflect.InvocationTargetException;
-import java.util.Date;
-
-import javax.xml.bind.annotation.XmlAttribute;
-
-import org.apache.commons.beanutils.BeanUtils;
 import org.transitclock.core.TemporalDifference;
 import org.transitclock.db.structs.ArrivalDeparture;
+
+import javax.xml.bind.annotation.XmlAttribute;
+import java.io.Serializable;
+import java.util.Date;
 /**
  * For IPC for obtaining arrival and departure events for a stop that are in the cache.
  *
@@ -17,17 +14,17 @@ import org.transitclock.db.structs.ArrivalDeparture;
  */
 public class IpcArrivalDeparture implements Serializable {
 
-	
-	
+
+
 
 
 
 
 	/**
-	 * 
+	 *
 	 */
 	private static final long serialVersionUID = 8916143683528781201L;
-	
+
 	@XmlAttribute
 	private String vehicleId;
 	@XmlAttribute
@@ -62,9 +59,11 @@ public class IpcArrivalDeparture implements Serializable {
 	private transient float stopPathLength;
 	@XmlAttribute
 	private Date freqStartTime;
-	
+	@XmlAttribute
+	private transient Long dwellTime;
+
 	public IpcArrivalDeparture(ArrivalDeparture arrivalDepature) throws Exception {
-		
+
 		this.vehicleId=arrivalDepature.getVehicleId();
 		this.time=new Date(arrivalDepature.getTime());
 		this.avlTime=arrivalDepature.getAvlTime();
@@ -73,18 +72,19 @@ public class IpcArrivalDeparture implements Serializable {
 		this.isArrival=arrivalDepature.isArrival();
 		this.stopId=arrivalDepature.getStopId();
 		this.stopPathIndex=arrivalDepature.getStopPathIndex();
-		
+
 		this.scheduledAdherence=arrivalDepature.getScheduleAdherence();
 		this.freqStartTime=arrivalDepature.getFreqStartTime();
 		this.directionId=arrivalDepature.getDirectionId();
 		this.blockId=arrivalDepature.getBlockId();
 		this.serviceId=arrivalDepature.getServiceId();
+		this.dwellTime=arrivalDepature.getDwellTime();
 	}
 	/* needed for kyro serializer */
 	public IpcArrivalDeparture() {
-		super();		
+		super();
 	}
-	
+
 
 	public String getVehicleId() {
 		return vehicleId;
@@ -204,8 +204,13 @@ public class IpcArrivalDeparture implements Serializable {
 		this.scheduledAdherence = scheduledAdherence;
 	}
 
+	public Long getDwellTime() {
+		return dwellTime;
+	}
 
-
+	public void setDwellTime(Long dwellTime) {
+		this.dwellTime = dwellTime;
+	}
 
 	@Override
 	public int hashCode() {
@@ -227,6 +232,7 @@ public class IpcArrivalDeparture implements Serializable {
 		result = prime * result + ((tripId == null) ? 0 : tripId.hashCode());
 		result = prime * result + tripIndex;
 		result = prime * result + ((vehicleId == null) ? 0 : vehicleId.hashCode());
+		result = prime * result + ((dwellTime == null) ? 0 : dwellTime.hashCode());
 		return result;
 	}
 
@@ -307,11 +313,13 @@ public class IpcArrivalDeparture implements Serializable {
 				return false;
 		} else if (!vehicleId.equals(other.vehicleId))
 			return false;
+		if (dwellTime == null) {
+			if (other.dwellTime != null)
+				return false;
+		} else if (!dwellTime.equals(other.dwellTime))
+			return false;
 		return true;
 	}
-
-
-
 
 	@Override
 	public String toString() {
@@ -320,10 +328,10 @@ public class IpcArrivalDeparture implements Serializable {
 				+ avlTime + ", scheduledAdherence=" + scheduledAdherence + ", blockId=" + blockId + ", routeId="
 				+ routeId + ", routeShortName=" + routeShortName + ", serviceId=" + serviceId + ", directionId="
 				+ directionId + ", tripIndex=" + tripIndex + ", stopPathIndex=" + stopPathIndex + ", stopPathLength="
-				+ stopPathLength + ", freqStartTime=" + freqStartTime + "]";
+				+ stopPathLength + ", freqStartTime=" + freqStartTime + (dwellTime != null ? ", dwellTime=" + dwellTime : "") + "]";
 	}
 
 
-	
-	
+
+
 }
