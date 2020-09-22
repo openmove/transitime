@@ -164,7 +164,7 @@
 		</rollingPolicy>
 		<encoder>
 			<charset>UTF-8</charset>
-			<pattern>${DEFAULT_PATTERN}</pattern>
+			<pattern>${DATA_PATTERN}</pattern>
 		</encoder>
 	</appender>
 
@@ -274,7 +274,7 @@
 		</rollingPolicy>
 		<encoder>
 			<charset>UTF-8</charset>
-			<pattern>${DEFAULT_PATTERN}</pattern>
+			<pattern>${DATA_PATTERN}</pattern>
 		</encoder>
 	</appender>
 
@@ -287,7 +287,7 @@
 		</rollingPolicy>
 		<encoder>
 			<charset>UTF-8</charset>
-			<pattern>${DEFAULT_PATTERN}</pattern>
+			<pattern>${DATA_PATTERN}</pattern>
 		</encoder>
 	</appender>
 
