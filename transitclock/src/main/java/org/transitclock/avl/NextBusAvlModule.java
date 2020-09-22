@@ -45,7 +45,7 @@ public class NextBusAvlModule extends XmlPollingAvlModule {
 	// Parameter that specifies URL of the NextBus feed.
 	private static StringConfigValue nextBusFeedUrl = 
 			new StringConfigValue("transitclock.avl.nextbus.url", 
-					"http://data.nextbus.com/service/customerfeed/",
+					"http://webservices.nextbus.com/service/publicXMLFeed",
 					"The URL of the NextBus feed to use.");
 	private static String getNextBusFeedUrl() {
 		return nextBusFeedUrl.getValue();

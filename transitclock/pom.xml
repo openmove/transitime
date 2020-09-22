@@ -83,6 +83,11 @@
 			<artifactId>hibernate-c3p0</artifactId>
 			<version>4.3.9.Final</version>
 		</dependency>
+		<dependency>
+			<groupId>transitclock</groupId>
+			<artifactId>lametro</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
 
 		<!-- hibernate-core loads in really old version of xml-apis so load in
 			newer version explicitly. Otherwise get problems with the Node class. -->
