@@ -29,6 +29,8 @@ public class WexfordCoachAvlModule extends PollUrlAvlModule {
 	@Override
 	protected Collection<AvlReport> processData(InputStream in) throws Exception {
 		
+		Collection<AvlReport> reports = new ArrayList<AvlReport>();
+		
 		String json=this.getJsonString(in);
 		// The return value for the method
 		Collection<AvlReport> avlReportsReadIn = new ArrayList<AvlReport>();

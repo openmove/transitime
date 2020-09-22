@@ -1,7 +1,9 @@
 core [![Build Status](https://travis-ci.org/TheTransitClock/transitime.svg?branch=develop)](https://travis-ci.org/TheTransitClock/transitime)
 ====
 
-The complete core Java software for the Transitime real-time transit information project. The goal is to use any type of real-time GPS data to generate useful public transportation information. The system is for both letting passengers know the status of their vehicles and helping agencies more effectively manage their systems. By providing a complete open-source system, agencies can have a cost effective system and have full ownership of it. 
+The complete core Java software for the Transitime real-time transit information project. Transitime is a project created and managed by Swiftly, Inc. (www.goswift.ly).
+
+The goal of Transitime is to use any type of real-time GPS data to generate useful public transportation information. The system is for both letting passengers know the status of their vehicles and for helping agencies more effectively manage their systems. By providing a complete open-source system, agencies can have a cost effective system and have full ownership of it. 
 
 The software is currently being used in a production environment for MBTA Commuter Rail and for several smaller agencies.
 
@@ -22,6 +24,7 @@ Core.java is as the name implies is the workhorse of the system. <br/>
 RmiQuery.java allows you make queries to the server run in core from the command line.<br/>
 CreateAPIKey.java a test app to allow you create test/demo key to access REST api webapp.<br/>
 CreateWebAgency.java is used to create and agency that will work in transitimeWebapp.<br/>
+UpdateTravelTimes.java is used to update travel time estimates based on historical data in the system.<br/>
 
 Details on how to run each of these and their respective parameters are in the README for the transitime module.
 

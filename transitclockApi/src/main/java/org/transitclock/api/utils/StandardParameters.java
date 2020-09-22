@@ -30,22 +30,8 @@ import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.Response.Status;
 
 import org.transitclock.db.webstructs.ApiKeyManager;
-import org.transitclock.ipc.clients.CacheQueryInterfaceFactory;
-import org.transitclock.ipc.clients.CommandsInterfaceFactory;
-import org.transitclock.ipc.clients.ConfigInterfaceFactory;
-import org.transitclock.ipc.clients.HoldingTimeInterfaceFactory;
-import org.transitclock.ipc.clients.PredictionAnalysisInterfaceFactory;
-import org.transitclock.ipc.clients.PredictionsInterfaceFactory;
-import org.transitclock.ipc.clients.ServerStatusInterfaceFactory;
-import org.transitclock.ipc.clients.VehiclesInterfaceFactory;
-import org.transitclock.ipc.interfaces.CacheQueryInterface;
-import org.transitclock.ipc.interfaces.CommandsInterface;
-import org.transitclock.ipc.interfaces.ConfigInterface;
-import org.transitclock.ipc.interfaces.HoldingTimeInterface;
-import org.transitclock.ipc.interfaces.PredictionAnalysisInterface;
-import org.transitclock.ipc.interfaces.PredictionsInterface;
-import org.transitclock.ipc.interfaces.ServerStatusInterface;
-import org.transitclock.ipc.interfaces.VehiclesInterface;
+import org.transitclock.ipc.clients.*;
+import org.transitclock.ipc.interfaces.*;
 
 import io.swagger.v3.oas.annotations.Parameter;
 
@@ -150,12 +136,9 @@ public class StandardParameters {
 		// bad requests before too much effort is expended. Throw exception
 		// if usage limits exceeded.
 		UsageValidator.getInstance().validateUsage(this);
-		
-		
+
 		// Make sure the application key is valid
 		if (!ApiKeyManager.getInstance().isKeyValid(getKey())) {
-			ApiKeyManager manager = ApiKeyManager.getInstance();
-			boolean test=manager.isKeyValid(getKey());
 			throw WebUtils.badRequestException(
 					Status.UNAUTHORIZED.getStatusCode(), "Application key \""
 							+ getKey() + "\" is not valid.");			
@@ -303,7 +286,7 @@ public class StandardParameters {
 	 * Gets the HoldingTimeInterface for the specified agencyId. If not valid
 	 * then throws WebApplicationException.
 	 * 
-	 * @return The PredictionAnalysisInterface
+	 * @return The HoldingTimeInterface
 	 */
 	public HoldingTimeInterface getHoldingTimeInterface()
 	{
@@ -313,6 +296,22 @@ public class StandardParameters {
 					+ " is not valid");
 
 		return holdingTimeInterface ;
+	}
+
+	/**
+	 * Gets the ScheduleAdherenceInterface for the specified agencyId. If not valid
+	 * then throws WebApplicationException.
+	 *
+	 * @return The ScheduleAdherenceInterface
+	 */
+	public ReportingInterface getReportingInterface()
+	{
+		ReportingInterface reportingInterface = ScheduleAdherenceInterfaceFactory.get(agencyId);
+		if (reportingInterface == null)
+			throw WebUtils.badRequestException("Agency ID " + agencyId
+					+ " is not valid");
+
+		return reportingInterface;
 	}
 	
 	/**

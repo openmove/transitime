@@ -17,15 +17,15 @@
 
 package org.transitclock.reports;
 
-import java.sql.SQLException;
-import java.text.ParseException;
-import java.util.List;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.transitclock.reports.ChartJsonBuilder.RowBuilder;
 import org.transitclock.utils.StringUtils;
 import org.transitclock.utils.Time;
+
+import java.sql.SQLException;
+import java.text.ParseException;
+import java.util.List;
 
 /**
  * For generating the JSON data for a Google chart for showing percent of
@@ -236,15 +236,12 @@ public class PredAccuracyRangeQuery extends PredictionAccuracyQuery {
 	 * @param args
 	 */
 	public static void main(String args[]) {
-
-		String beginDate = "11-25-2014";
+		String beginDate = "06-30-2016";
+		String numDays = "1";
 		String beginTime = null;
 		String endTime = null;
-		String numDays = "1";
-		String routeIds[] = { "CR-Fairmount" };
-
-		String source = "Transitime";
-			
+		String routeIds[] = { };
+		String source = "TransitClock";
 
 		String dbType = "postgresql";// "mysql";
 		String dbHost = "192.168.99.100";// "localhost";

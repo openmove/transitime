@@ -16,6 +16,18 @@
  */
 package org.transitclock.db.structs;
 
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.persistence.Column;
+import javax.persistence.ElementCollection;
+import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.Id;
+import javax.persistence.OrderColumn;
+import javax.persistence.Table;
+import javax.persistence.Transient;
 
 import org.hibernate.CallbackException;
 import org.hibernate.HibernateException;
@@ -30,10 +42,6 @@ import org.transitclock.configData.CoreConfig;
 import org.transitclock.db.hibernate.HibernateUtils;
 import org.transitclock.utils.Geo;
 
-import javax.persistence.*;
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
 
 
 /**
@@ -102,10 +110,9 @@ public class StopPath implements Serializable, Lifecycle {
 	@Column
 	private final Integer breakTime;
 	
-
-  // sacrifice performance for reportability -- use a child table instead of java serialization 
-	@ElementCollection
-  @OrderColumn
+    // sacrifice performance for reportability -- use a child table instead of java serialization
+	@ElementCollection(fetch=FetchType.LAZY)
+    @OrderColumn
 	private List<Location> locations;
 
 
@@ -183,7 +190,7 @@ public class StopPath implements Serializable, Lifecycle {
 	 * Needed because Hibernate requires no-arg constructor
 	 */
 	@SuppressWarnings("unused")
-	private StopPath() {
+	public StopPath() {
 		this.configRev = -1;
 		this.stopPathId = null;
 		this.stopId = null;

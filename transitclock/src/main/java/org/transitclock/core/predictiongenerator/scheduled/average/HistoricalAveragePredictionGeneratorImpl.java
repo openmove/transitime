@@ -1,8 +1,5 @@
 package org.transitclock.core.predictiongenerator.scheduled.average;
 
-import java.util.Calendar;
-import java.util.Date;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.transitclock.applications.Core;
@@ -12,13 +9,13 @@ import org.transitclock.core.PredictionGeneratorDefaultImpl;
 import org.transitclock.core.VehicleState;
 import org.transitclock.core.dataCache.HistoricalAverage;
 import org.transitclock.core.dataCache.StopPathCacheKey;
-import org.transitclock.core.dataCache.StopPathPredictionCache;
+import org.transitclock.core.dataCache.StopPathPredictionCacheFactory;
 import org.transitclock.core.dataCache.scheduled.ScheduleBasedHistoricalAverageCache;
 import org.transitclock.core.predictiongenerator.PredictionComponentElementsGenerator;
-import org.transitclock.core.predictiongenerator.lastvehicle.LastVehiclePredictionGeneratorImpl;
 import org.transitclock.db.structs.AvlReport;
 import org.transitclock.db.structs.PredictionForStopPath;
-import org.transitclock.ipc.data.IpcPrediction;
+
+import java.util.Date;
 
 /**
  * @author Sean Óg Crudden
@@ -26,7 +23,7 @@ import org.transitclock.ipc.data.IpcPrediction;
  *  populated each time an arrival/departure event occurs. The HistoricalAverageCache is updated using data from the TripDataHistory cache.
  */
 public class HistoricalAveragePredictionGeneratorImpl extends
-LastVehiclePredictionGeneratorImpl implements PredictionComponentElementsGenerator {
+	PredictionGeneratorDefaultImpl implements PredictionComponentElementsGenerator {
 	private String alternative="LastVehiclePredictionGeneratorImpl";
 	
 
@@ -62,7 +59,7 @@ LastVehiclePredictionGeneratorImpl implements PredictionComponentElementsGenerat
 			{
 				PredictionForStopPath predictionForStopPath=new PredictionForStopPath(vehicleState.getVehicleId(), new Date(Core.getInstance().getSystemTime()), average.getAverage(), indices.getTrip().getId(), indices.getStopPathIndex(), "HISTORICAL AVERAGE",true, null);			
 				Core.getInstance().getDbLogger().add(predictionForStopPath);
-				StopPathPredictionCache.getInstance().putPrediction(predictionForStopPath);
+				StopPathPredictionCacheFactory.getInstance().putPrediction(predictionForStopPath);
 			}
 			
 			logger.debug("Using historical average algorithm for prediction : " +average.toString() + " instead of "+alternative+" prediction: "
@@ -91,5 +88,13 @@ LastVehiclePredictionGeneratorImpl implements PredictionComponentElementsGenerat
 		}
 					
 		return super.getStopTimeForPath(indices,  avlReport, vehicleState);
+	}
+	
+	@Override
+	public boolean hasDataForPath(Indices indices, AvlReport avlReport) {
+		StopPathCacheKey historicalAverageCacheKey = new StopPathCacheKey(indices.getTrip().getId(), indices.getStopPathIndex());
+		HistoricalAverage average = ScheduleBasedHistoricalAverageCache.getInstance().getAverage(historicalAverageCacheKey);
+		
+		return (average!=null && average.getCount()>=minDays.getValue());
 	}
 }

@@ -1,4 +1,4 @@
-<!-- This is the configuration file for the logback logging system. This 
+<!-- This is the configuration file for the logback logging system. This
 	file will be used if it is in the classpath (because logback looks for the
 	file logback.xml in the classpath) or if explicitly invoked using the Java
 	param -Dlogback.configurationFile=/DIR/src/main/config/logback.xml (testing
@@ -327,7 +327,7 @@
 			<pattern>${DEFAULT_PATTERN}</pattern>
 		</encoder>
 	</appender>
-	
+
 	<!-- Separate file for SQL logging -->
 	<appender name="SQL"
 		class="ch.qos.logback.core.rolling.RollingFileAppender">
@@ -347,7 +347,7 @@
 			<pattern>${DATA_PATTERN}</pattern>
 		</encoder>
 	</appender>
-	
+
 	<!-- Separate file for Match logging -->
 	<appender name="MAPMATCH"
 		class="ch.qos.logback.core.rolling.RollingFileAppender">
@@ -357,6 +357,18 @@
 		<encoder>
 			<charset>UTF-8</charset>
 			<pattern>${DATA_PATTERN}</pattern>
+		</encoder>
+	</appender>
+
+	<!-- Separate file for SQL logging -->
+	<appender name="UPDATE_TRAVEL_TIMES"
+			  class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<fileNamePattern>${LOG_FILE_ROOT}/update_travel_times.log.gz</fileNamePattern>
+		</rollingPolicy>
+		<encoder>
+			<charset>UTF-8</charset>
+			<pattern>${DEFAULT_PATTERN}</pattern>
 		</encoder>
 	</appender>
 
@@ -403,7 +415,7 @@
 		level="debug" additivity="false">
 		<appender-ref ref="PREDICTION" />
 	</logger>
-	
+
 	<logger name="org.transitclock.core.schedBasedPreds" level="debug"
 		additivity="false">
 		<appender-ref ref="SCHED_BASED_PREDS" />
@@ -495,7 +507,7 @@
 		level="debug" additivity="false">
 		<appender-ref ref="CACHE" />
 	</logger>
-	
+
 	<logger name="org.transitclock.core.dataCache.jcs.DwellTimeModelCache"
 		level="debug" additivity="false">
 		<appender-ref ref="PREDICTION" />
@@ -513,15 +525,24 @@
 		level="debug" additivity="true">
 		<appender-ref ref="ARRIVAL_DEPARTURE" />
 	</logger>
-	
-	<logger name="org.transitclock.custom.barefoot.BarefootAVLModule" 
-		level="debug" additivity="true"> 
-		<appender-ref ref="MAPMATCH" /> 
+
+	<logger name="org.transitclock.custom.barefoot.BarefootAVLModule"
+		level="debug" additivity="true">
+		<appender-ref ref="MAPMATCH" />
 	</logger>
-	
+
+
 	<logger name="org.transitclock.core.AvlProcessor" level="debug" additivity="true">
-		<appender-ref ref="AVL" /> </logger>
-		
+		<appender-ref ref="AVL" />
+	</logger>
+
+
+	<logger name="org.transitclock.applications.UpdateTravelTimes"
+			level="debug" additivity="true">
+		<appender-ref ref="UPDATE_TRAVEL_TIMES" />
+	</logger>
+
+
 	<!-- In order to log the hibernate SQL queries need to set org.hibernate.SQL
 		to debug. To show the values of the parameters need to set org.hibernate.type
 		to trace. Probably also want to set in hibernate.cfg.xml the properties format_sql

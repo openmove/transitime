@@ -57,7 +57,7 @@ System.out.println("\nFor schedule adherence by route query sql=\n" + sql);
 String agencyId = request.getParameter("a");
 String jsonString  = GenericJsonQuery.getJsonString(agencyId, sql);
 response.setContentType("application/json");
-
+response.setHeader("Access-Control-Allow-Origin", "*");
 response.getWriter().write(jsonString);
 } catch (Exception e) {
 	response.setStatus(400);

@@ -17,19 +17,14 @@
 
 package org.transitclock.ipc.data;
 
-import java.io.IOException;
-import java.util.Date;
-
 import org.transitclock.applications.Core;
-import org.transitclock.core.BlockAssignmentMethod;
-import org.transitclock.core.SpatialMatch;
-import org.transitclock.core.TemporalDifference;
-import org.transitclock.core.TemporalMatch;
-import org.transitclock.core.VehicleState;
-import org.transitclock.db.structs.HoldingTime;
+import org.transitclock.core.*;
 import org.transitclock.db.structs.StopPath;
 import org.transitclock.db.structs.Trip;
 import org.transitclock.utils.Time;
+
+import java.io.IOException;
+import java.util.Date;
 
 
 /**
@@ -67,7 +62,7 @@ public class IpcVehicleGtfsRealtime extends IpcVehicle {
 	public void setCanceled(boolean isCanceled) {
 		this.isCanceled = isCanceled;
 	}
-	
+
 	// For GTFS-rt to set scheduled relationship
 	private final boolean isTripUnscheduled;
 

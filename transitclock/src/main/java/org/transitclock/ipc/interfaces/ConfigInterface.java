@@ -17,20 +17,13 @@
 
 package org.transitclock.ipc.interfaces;
 
+import org.transitclock.db.structs.Agency;
+import org.transitclock.ipc.data.*;
+
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.Collection;
 import java.util.List;
-
-import org.transitclock.db.structs.Agency;
-import org.transitclock.ipc.data.IpcBlock;
-import org.transitclock.ipc.data.IpcCalendar;
-import org.transitclock.ipc.data.IpcDirectionsForRoute;
-import org.transitclock.ipc.data.IpcRoute;
-import org.transitclock.ipc.data.IpcRouteSummary;
-import org.transitclock.ipc.data.IpcSchedule;
-import org.transitclock.ipc.data.IpcTrip;
-import org.transitclock.ipc.data.IpcTripPattern;
 
 /**
  * Defines the RMI interface for getting configuration data.
@@ -78,7 +71,7 @@ public interface ConfigInterface extends Remote {
 	
 	/**
 	 * Obtains ordered list of route details
-	 * @param routeIdOrShortName
+	 * @param routeIdsOrShortNames
 	 * @return
 	 * @throws RemoteException
 	 */
@@ -159,7 +152,13 @@ public interface ConfigInterface extends Remote {
 	 * @throws RemoteException
 	 */
 	public List<Agency> getAgencies() throws RemoteException;
-	
+
+	/* (non-Javadoc)
+	 * @see org.transitclock.ipc.interfaces.ConfigInterface#getSchedulesForTrip(java.lang.String)
+	 */
+	List<IpcSchedule> getSchedulesForTrip(String tripId)
+			throws RemoteException;
+
 	/**
 	 * Returns list of Calendar objects that are currently active.
 	 * @return
@@ -222,6 +221,16 @@ public interface ConfigInterface extends Remote {
 	 * @throws RemoteException
 	 */
 	public List<String> getBlockIds(String serviceId)
-			throws RemoteException;	
+			throws RemoteException;
+
+	public List<String> getServiceIdsForDay(Long currentTimeMillis) throws RemoteException;
+
+	/**
+	 * Returns serviceId suffix config param
+	 *
+	 * @return boolean
+	 * @throws RemoteException
+	 */
+	public boolean getServiceIdSuffix() throws RemoteException;
 
 }

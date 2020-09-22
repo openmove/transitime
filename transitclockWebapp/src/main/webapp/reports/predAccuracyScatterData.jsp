@@ -20,8 +20,8 @@ boolean isMysql = "mysql".equals(dbtype);
 
 boolean showTooltips = false;
 String showTooltipsStr = request.getParameter("tooltips");
-if (showTooltipsStr != null && showTooltipsStr.toLowerCase().equals("false"))
-    showTooltips = false;
+if (showTooltipsStr != null && showTooltipsStr.toLowerCase().equals("true"))
+    showTooltips = true;
     
 if (agencyId == null || beginDate == null || numDays == null) {
 		response.getWriter().write("For predAccuracyScatterData.jsp must "
@@ -54,19 +54,19 @@ if (Integer.parseInt(numDays) > 31) {
 // all routes.
         String routeSql = "";
         if (routeId!=null && !routeId.trim().isEmpty()) {
-            routeSql = "  AND routeId='" + routeId + "' ";
+            routeSql = String.format(" AND (routeId='%1$s' OR routeShortName='%1$s')", routeId);
         }
 
 // Determine the source portion of the SQL. Default is to provide
 // predictions for all sources
         String sourceSql = "";
         if (source != null && !source.isEmpty()) {
-            if (source.equals("Transitime")) {
+            if (source.equals("TransitClock")) {
                 // Only "Transitime" predictions
-                sourceSql = " AND predictionSource='Transitime'";
+                sourceSql = " AND predictionSource='TransitClock'";
             } else {
                 // Anything but "Transitime"
-                sourceSql = " AND predictionSource<>'Transitime'";
+                sourceSql = " AND predictionSource<>'TransitClock'";
             }
         }
 
@@ -82,20 +82,43 @@ if (Integer.parseInt(numDays) > 31) {
             }
         }
 
-        String tooltipsSql = "";
-        if (showTooltips)
+        String predLengthSql = "     to_char(predictedTime-predictionReadTime, 'SSSS')::integer";
+        String predAccuracySql = "     predictionAccuracyMsecs/1000 ";
+        if (isMysql) {
+          predLengthSql = "TIMESTAMPDIFF(SECOND,predictionReadTime,predictedTime)";
+          predAccuracySql = "CAST(predictionAccuracyMsecs/1000 AS DECIMAL)";
+        }
+
+    String tooltipsSql = "";
+    if (showTooltips) {
+        if (isMysql) {
+            tooltipsSql = ", CONCAT("
+                    + "\'time=\',"
+                    + "predictionReadTime"
+                    + ",\'\\n\'"
+                    + ",\'stopId=\',"
+                    + "stopId"
+                    + ",\'\\n\'"
+                    + ",\'routeId=\',"
+                    + "routeId"
+                    + ",\'\\n\'"
+                    + ",\'vehicleId=\',"
+                    + "vehicleId"
+                    + ") as tooltip";
+
+        } else {
             tooltipsSql =
-                    ", format(E'predAccuracy= %s\\n"
-                            +         "prediction=%s\\n"
-                            +         "stopId=%s\\n"
-                            +         "routeId=%s\\n"
-                            +         "tripId=%s\\n"
-                            +         "arrDepTime=%s\\n"
-                            +         "predTime=%s\\n"
-                            +         "predReadTime=%s\\n"
-                            +         "vehicleId=%s\\n"
-                            +         "source=%s\\n"
-                            +         "affectedByLayover=%s', "
+                    ", format(E'predAccuracy=%s\\n"
+                            + "prediction=%s\\n"
+                            + "stopId=%s\\n"
+                            + "routeId=%s\\n"
+                            + "tripId=%s\\n"
+                            + "arrDepTime=%s\\n"
+                            + "predTime=%s\\n"
+                            + "predReadTime=%s\\n"
+                            + "vehicleId=%s\\n"
+                            + "source=%s\\n"
+                            + "affectedByLayover=%s', "
                             + "   CAST(predictionAccuracyMsecs || ' msec' AS INTERVAL), predictedTime-predictionReadTime,"
                             + "   stopId, routeId, tripId, "
                             + "   to_char(arrivalDepartureTime, 'HH24:MI:SS.MS MM/DD/YYYY'),"
@@ -104,23 +127,18 @@ if (Integer.parseInt(numDays) > 31) {
                             + "   vehicleId,"
                             + "   predictionSource,"
                             + "   CASE WHEN affectedbywaitstop THEN 'True' ELSE 'False' END) AS tooltip ";
-
-        String predLengthSql = "     to_char(predictedTime-predictionReadTime, 'SSSS')::integer ";
-        String predAccuracySql = "     predictionAccuracyMsecs/1000 as predAccuracy ";
-        if (isMysql) {
-          predLengthSql = "CAST(predictedTime-predictionReadTime as SIGNED) ";
-          predAccuracySql = "CAST(predictionAccuracyMsecs/1000 AS DECIMAL) as predAccuracy "; 
         }
+    }
         
        String sql = "SELECT "
-                + predLengthSql + " as predLength," 
-                + predAccuracySql
+                + predLengthSql + " as predLength, "
+                + predAccuracySql + " as predAccuracy "
                 + tooltipsSql
                 + " FROM PredictionAccuracy "
                 + "WHERE "
                 + "1=1 "
 				+ SqlUtils.timeRangeClause(request, "arrivalDepartureTime", 30)
-                + "  AND "+predLengthSql+" < 900 "
+                + "  AND "+predLengthSql+" <= 1200 "
                 + routeSql
                 + sourceSql
                 + predTypeSql

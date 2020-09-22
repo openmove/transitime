@@ -16,43 +16,24 @@
  */
 package org.transitclock.gtfs;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-
 import org.hibernate.HibernateException;
+import org.hibernate.Query;
 import org.hibernate.SQLQuery;
 import org.hibernate.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.transitclock.applications.Core;
+import org.transitclock.config.BooleanConfigValue;
 import org.transitclock.config.StringConfigValue;
 import org.transitclock.core.ServiceUtils;
 import org.transitclock.db.hibernate.HibernateUtils;
-import org.transitclock.db.structs.ActiveRevisions;
-import org.transitclock.db.structs.Agency;
-import org.transitclock.db.structs.Block;
 import org.transitclock.db.structs.Calendar;
-import org.transitclock.db.structs.CalendarDate;
-import org.transitclock.db.structs.FareAttribute;
-import org.transitclock.db.structs.FareRule;
-import org.transitclock.db.structs.Frequency;
-import org.transitclock.db.structs.Route;
-import org.transitclock.db.structs.Stop;
-import org.transitclock.db.structs.StopPath;
-import org.transitclock.db.structs.Transfer;
-import org.transitclock.db.structs.TravelTimesForStopPath;
-import org.transitclock.db.structs.TravelTimesForTrip;
-import org.transitclock.db.structs.Trip;
-import org.transitclock.db.structs.TripPattern;
+import org.transitclock.db.structs.*;
 import org.transitclock.utils.IntervalTimer;
 import org.transitclock.utils.MapKey;
 import org.transitclock.utils.Time;
+
+import java.util.*;
 
 /**
  * Reads all the configuration data from the database. The data is based on GTFS
@@ -104,6 +85,12 @@ public class DbConfig {
 	private Map<String, List<Trip>> individualTripsByShortNameMap =
 			new HashMap<String, List<Trip>>();
 
+	// cache of all tripIds to prevent queries for nonexistant trips
+	private Set<String> tripIdSet = null;
+	// cache of all tripNames to prevent queries for nonexistent trips
+	private Set<String> tripNameSet = null;
+
+
 	private List<Agency> agencies;
 	private List<Calendar> calendars;
 	private List<CalendarDate> calendarDates;
@@ -113,6 +100,8 @@ public class DbConfig {
 	private List<FareRule> fareRules;
 	private List<Frequency> frequencies;
 	private List<Transfer> transfers;
+	private List<FeedInfo> feedInfo;
+
 
 	// Keyed by stop_id.
 	private Map<String, Stop> stopsMap;
@@ -136,6 +125,9 @@ public class DbConfig {
 		return validateTestQuery.getValue();
 	}
 
+	private BooleanConfigValue serviceIdSuffix = new BooleanConfigValue("transitclock.avl.serviceIdSuffix",
+			false,"suffix tripId with serviceId");
+	public boolean getServiceIdSuffix() { return serviceIdSuffix.getValue(); }
 	
 	/********************** Member Functions **************************/
 
@@ -520,6 +512,16 @@ public class DbConfig {
 
 		// If trip not read in yet, do so now
 		if (trip == null) {
+
+			// make sure this trip really exists before we try to load
+			if (!getTripNameSet().contains(tripIdOrShortName)) {
+				if (!getTripIdSet().contains(tripIdOrShortName)) {
+					// perhaps it was a previous configRev
+					logger.debug("requested {} trip no longer exists", tripIdOrShortName);
+					return null;
+				}
+			}
+
 			logger.debug("Trip for tripIdOrShortName={} not read from db yet "
 					+ "so reading it now.", tripIdOrShortName);
 			
@@ -550,6 +552,55 @@ public class DbConfig {
 		}
 		
 		return trip;
+	}
+
+	/**
+	 * cache of all trip names for this configRev.
+	 * @return Set of tripNames
+	 */
+	private Set<String> getTripNameSet() {
+		if (tripNameSet == null) {
+			synchronized (Block.getLazyLoadingSyncObject()) {
+				// check to see if we won the lock
+				if (tripNameSet != null) return tripNameSet;
+				IntervalTimer tick = new IntervalTimer();
+				logger.info("loading tripShortName Cache....");
+				String hql = "select tripShortName FROM Trip t " +
+						"    WHERE t.configRev = :configRev";
+				Query query = globalSession.createQuery(hql);
+				query.setInteger("configRev", configRev);
+
+				// Actually perform the query
+				tripNameSet = new HashSet<String>(query.list());
+				logger.info("tripShortName cache loaded in {}", tick.elapsedMsec());
+			}
+		}
+		return tripNameSet;
+	}
+
+	/**
+	 * cache of all trip ids for this configRev.
+	 * @return Set of tripIds
+	 */
+
+	private Set<String> getTripIdSet() {
+		if (tripIdSet == null) {
+			synchronized (Block.getLazyLoadingSyncObject()) {
+				// check to see if we won the lock
+				if (tripIdSet != null) return tripIdSet;
+				IntervalTimer tick = new IntervalTimer();
+				logger.info("loading tripId Cache....");
+				String hql = "select tripId FROM Trip t " +
+						"    WHERE t.configRev = :configRev";
+				Query query = globalSession.createQuery(hql);
+				query.setInteger("configRev", configRev);
+
+				// Actually perform the query
+				tripIdSet = new HashSet<String>(query.list());
+				logger.info("tripId cache loaded in {}", tick.elapsedMsec());
+			}
+		}
+		return tripIdSet;
 	}
 
 	/**
@@ -602,7 +653,14 @@ public class DbConfig {
 			}
 		}
 
-		logger.info("FIXME tripShortName={} not yet read from db so reading it in now", tripShortName);
+		// if we got this far, its possible the trip doesn't exist.  Check cache
+		// before making expensive call to database
+		if (!getTripNameSet().contains(tripShortName)) {
+			logger.debug("request for non-existant trip {}", tripShortName);
+			return null;
+		}
+		logger.info("FIXME tripShortName={} not yet read from db so reading it in now ",
+				tripShortName);
 		
 		// Trips for the short name not read in yet, do so now
 		// Need to sync such that block data, which includes trip
@@ -737,6 +795,8 @@ public class DbConfig {
 		fareRules = FareRule.getFareRules(globalSession, configRev);
 		frequencies = Frequency.getFrequencies(globalSession, configRev);
 		transfers = Transfer.getTransfers(globalSession, configRev);
+		feedInfo = FeedInfo.getFeedInfo(globalSession, configRev);
+
 
 		logger.debug("Reading everything else took {} msec",
 				timer.elapsedMsec());
@@ -1096,5 +1156,6 @@ public class DbConfig {
 		outputCollection("FareRules", dbConfig.fareRules);
 		outputCollection("Frequencies", dbConfig.frequencies);
 		outputCollection("Transfers", dbConfig.transfers);
+		outputCollection("FeedInfo", dbConfig.feedInfo);
 	}
 }

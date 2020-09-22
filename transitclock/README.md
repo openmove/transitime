@@ -9,7 +9,7 @@ The steps to set up the system are
 	</li>
 	</li>
 	<li>Import GTFS static data using
-		processGTFSFile.jar
+		GTFSFileProcessor.jar
 	</li>		
 	<li>Get access to a source of realtime GPS data.</li>
 	<li>Create transiTime module to read realtime GPS data or create a converter to convert the realtime datasource to a GTFS-RT vechicle location source.</li>
@@ -18,6 +18,8 @@ The steps to set up the system are
 	<li>Create API key. For the moment see TestAPIKeyManager.java test. The testAPIKeyManger test will create a key for you.</li>
 	<li>Setup transitime api webapp. Instructions to be added to README.MD in transitimeApi.</li>
 	<li>Setup transitime webapp. Instructions to be added to README.MD in transitimeWebapp.</li>
+	
+	<li>Configure travel times/predictions based on historical data using UpdateTravelTimes.java. Instructions in "Improving Predictions" section below.</li>
 </ul>
 	
 
@@ -66,7 +68,7 @@ processGTFSFile.jar -- Main class: org.transitclock.applications.GTFSFileProcess
 This class the usage can be got from specifying the -h option on its own.
 
 ```
-usage: java processGTFSFile.jar [-c <configFile>] [-combineRouteNames]
+usage: java GTFSFileProcessor.jar [-c <configFile>] [-combineRouteNames]
        [-defaultWaitTimeAtStopMsec <msec>] [-gtfsDirectoryName <dirName>]
        [-gtfsUrl <url>] [-gtfsZipFileName <zipFileName>] [-h]
        [-maxDistanceForEliminatingVertices <meters>] [-maxSpeedKph <kph>]
@@ -170,8 +172,71 @@ args:
 
 ```
 example:
-	java  -Xmx1000M -Dtransitime.core.agencyId=02 -jar processGTFSFile.jar -c d:/transiTime/transiTimeConfig.xml -gtfsDirectoryName d:/transiTime/updated_google_transit_irishrail/ -storeNewRevs -maxTravelTimeSegmentLength 1000
+	java  -Xmx1000M -Dtransitclock.core.agencyId=02 -jar GTFSFileProcessor.jar -c d:/transiTime/transiTimeConfig.xml -gtfsDirectoryName d:/transiTime/updated_google_transit_irishrail/ -storeNewRevs -maxTravelTimeSegmentLength 1000
 ```
 
 
 WORK IN PROGRESS........................
+Improving Predictions
+=================================
+UpdateTravelTimes.java is a main application which looks at historical data in the system and updates the estimated times where there is relavent historical data.
+
+This takes one or two date arguments. It is intended to process one days data and update the travel times in the database based on this data.
+
+If two dates supplied it processes all data within the date range. If a single date provided it processes all data for that day.
+
+Date in is format MM-dd-yyyy
+
+Example using maven to execute
+````
+
+
+mvn exec:java -Dtransitclock.configFiles=/home/scrudden/workspace/transitimeconfig/transiTimeConfig.xml -Dtransitclock.logging.dir=/home/scrudden/workspace/core/logs/ -Dexec.mainClass="org.transitclock.applications.UpdateTravelTimes" -Dexec.args="08-24-2015"
+````
+Configuration File for core.java
+==============================
+Core can read its configuration from an xml configuration file. The xml file is not based on a schema but on nested tags that match the hierachy specified in the names in the source. The main work is done by the modules which are configured in the semi colon delimited list in the optionModuleList tag.  The choice of module and the their individual configuration is a complex task which will be specific to each transit agency.
+
+The database and hibernate config file are specified in this file.
+
+<b>/home/scrudden/workspace/transitimeconfig/transiTimeConfig.xml</b>
+````
+<?xml version="1.0" encoding="UTF-8"?>
+<transitclock>
+    <modules>
+        <!-- <optionalModulesList>org.transitclock.core.schedBasedPreds.SchedBasedPredsModule;org.transitclock.avl.GtfsRealtimeModule</optionalModulesList> -->                            
+     	<!--<optionalModulesList>org.transitclock.avl.GtfsRealtimeModule;org.transitclock.custom.irishrail.NexalaAvlModule</optionalModulesList>-->
+     	<optionalModulesList>org.transitclock.custom.irishrail.NexalaAvlModule</optionalModulesList>
+    </modules>
+     
+      <core>
+	    <allowableEarlySecondsForInitialMatching>1200</allowableEarlySecondsForInitialMatching>
+	    <allowableLateSecondsForInitialMatching>1200</allowableLateSecondsForInitialMatching>
+	    <maxDistanceFromSegment>10000</maxDistanceFromSegment>	    
+	    <maxPredictionsTimeSecs>7200</maxPredictionsTimeSecs>	    
+	    <agencyId>02</agencyId>
+    </core>	
+    <avl>
+        <!-- URL for GTFS realtime vechicle location stream -->
+        <gtfsRealtimeFeedURI>http://0.0.0.0:8092/vehiclePositions</gtfsRealtimeFeedURI>        
+	<gtfsRealtimeNexalaFeedURI>http://0.0.0.0:8091/vehiclePositions</gtfsRealtimeNexalaFeedURI>
+        <minLongitude>-10.725</minLongitude>
+        <maxLongitude>-5.35</maxLongitude>             
+        <minLatitude>51.35</minLatitude>
+        <maxLatitude>55.45</maxLatitude>                
+        <feedPollingRateSecs>60</feedPollingRateSecs>
+	<!-- Max Speed set to 62.6m/s=140mph -->
+	<maxSpeed>62.6</maxSpeed>	
+    </avl>   
+    <db>
+        <dbName>transitime</dbName>
+        <dbHost>127.0.0.1:5432</dbHost>
+        <dbType>postgresql</dbType>
+        <dbUserName>ogcrudden</dbUserName>
+        <dbPassword>password</dbPassword>
+    </db>     
+    <hibernate>
+        <configFile>/home/ogcrudden/workspace/transitimeconfig/postgres_hibernate.cfg.xml</configFile>        
+    </hibernate>
+</transitclock>
+````

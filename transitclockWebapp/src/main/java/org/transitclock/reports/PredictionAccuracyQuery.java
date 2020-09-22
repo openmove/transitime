@@ -17,22 +17,18 @@
 
 package org.transitclock.reports;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.transitclock.db.GenericQuery;
 import org.transitclock.db.webstructs.WebAgency;
 import org.transitclock.utils.Time;
+
+import java.sql.*;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * For doing SQL query and generating JSON data for a prediction accuracy chart.
@@ -50,7 +46,7 @@ abstract public class PredictionAccuracyQuery {
 	private final Connection connection;
 	private String dbType = null;
 
-	protected static final int MAX_PRED_LENGTH = 900;
+	protected static final int MAX_PRED_LENGTH = 1200;
 	protected static final int PREDICTION_LENGTH_BUCKET_SIZE = 30;
 
 	// Keyed on source (so can show data for multiple sources at
@@ -177,11 +173,12 @@ abstract public class PredictionAccuracyQuery {
 
 		while (predictionBuckets.size() < predictionBucketIndex + 1)
 			predictionBuckets.add(new ArrayList<Integer>());
+			
 		if (predictionBucketIndex < predictionBuckets.size() && predictionBucketIndex >= 0) {
 		  List<Integer> predictionAccuracies = predictionBuckets
 		      .get(predictionBucketIndex);
-	    // Add the prediction accuracy to the bucket.
-	    predictionAccuracies.add(predAccuracy);
+	    	// Add the prediction accuracy to the bucket.
+	    	predictionAccuracies.add(predAccuracy);
 		} else {
 		  // some prediction streams supply predictions in the past -- ignore those
 		  logger.error("predictionLength {} has illegal index {} for predAccuracy {} and source {}", 
@@ -272,12 +269,12 @@ abstract public class PredictionAccuracyQuery {
 		// predictions for all sources
 		String sourceSql = "";
 		if (predSource != null && !predSource.isEmpty()) {
-			if (predSource.equals("Transitime")) {
+			if (predSource.equals("TransitClock")) {
 				// Only "Transitime" predictions
-				sourceSql = " AND predictionSource='Transitime'";
+				sourceSql = " AND predictionSource='TransitClock'";
 			} else {
 				// Anything but "Transitime"
-				sourceSql = " AND predictionSource<>'Transitime'";
+				sourceSql = " AND predictionSource<>'TransitClock'";
 			}
 		}
 
@@ -303,7 +300,7 @@ abstract public class PredictionAccuracyQuery {
 				+ "WHERE arrivalDepartureTime BETWEEN ? "
 				+ "      AND TIMESTAMP '" + beginDateStr + "' + INTERVAL '" + numDays + " day' "
 				+ timeSql
-				+ "  AND predictedTime-predictionReadTime < '00:15:00' "
+				+ "  AND predictedTime-predictionReadTime < '00:20:00' "
 				+ routeSql
 				+ sourceSql 
 				+ predTypeSql;
@@ -320,7 +317,7 @@ abstract public class PredictionAccuracyQuery {
 				+ "AND DATE_ADD(CAST(? AS DATETIME), INTERVAL " + numDays + " day) " 
 				+ mySqlTimeSql
 				+ "  AND "
-				+ "abs(unix_timestamp(predictedTime)-unix_timestamp(predictionReadTime)) < 900 " //15 mins
+				+ "abs(unix_timestamp(predictedTime)-unix_timestamp(predictionReadTime)) < 1200 " //20 mins
 				// Filter out MBTA_seconds source since it is isn't
 				// significantly different from MBTA_epoch.
 				// TODO should clean this up by not having MBTA_seconds source
@@ -382,7 +379,8 @@ abstract public class PredictionAccuracyQuery {
 			// Set the parameters for the query
 			int i = 1;
 			statement.setTimestamp(i++, beginDate);
-			
+			statement.setTimestamp(i++, beginDate);
+
 			if (beginTime != null) {
 			  if ("mysql".equals(dbType)) {
 			    // for mysql use the time str as is to avoid TZ issues

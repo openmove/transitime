@@ -4,13 +4,13 @@ import java.io.Serializable;
 
 public class KalmanError implements Serializable {
 	/**
-	 * 
+	 *
 	 */
 	private static final long serialVersionUID = 6732432800590510672L;
 
 	// This is the error values itself.
 	private Double error=Double.NaN;
-	
+
 	//This is the number of times it has been updated.
 	private Integer updates=null;
 
@@ -29,7 +29,8 @@ public class KalmanError implements Serializable {
 	}
 
 	public void setError(Double error) {
-		if(this.error.compareTo(error)!=0)
+
+		if(error != null && this.error != null && this.error.compareTo(error)!=0)
 		{
 			this.error = error;
 			incrementUpdates();
@@ -55,7 +56,7 @@ public class KalmanError implements Serializable {
 		result = prime * result + ((updates == null) ? 0 : updates.hashCode());
 		return result;
 	}
-	
+
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -82,5 +83,5 @@ public class KalmanError implements Serializable {
 	public String toString() {
 		return "KalmanError [error=" + error + ", updates=" + updates + "]";
 	}
-			
+
 }

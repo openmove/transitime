@@ -762,4 +762,29 @@ public class CoreConfig {
 					+ "can be used by monit to make sure that core process is "
 					+ "always running.");
 	
+	/**
+	 * Whether historical arrival/departure caches should be filled on
+	 * Core start. These are used for some prediction generators, but
+	 * not the default.
+	 * @return
+	 */
+	public static boolean getFillHistoricalCaches() {
+	  return fillHistoricalCaches.getValue();
+	}
+	private static BooleanConfigValue fillHistoricalCaches = 
+	    new BooleanConfigValue(
+	        "transitclock.core.fillHistoricalCaches",
+	        false,
+	        "whether historical caches should be filled on Core start.");
+
+	private static BooleanConfigValue strictTripAssignmentMatch =
+			new BooleanConfigValue(
+					"transitclock.core.strictTripAssignmentMatch",
+					false,
+					"AVL trip assignments are trusted, do not discard for block assignment.  Retain the" +
+							"temporal implications of the trip assignment");
+
+	public static boolean tryForExactTripMatch() {
+		return strictTripAssignmentMatch.getValue();
+	}
 }

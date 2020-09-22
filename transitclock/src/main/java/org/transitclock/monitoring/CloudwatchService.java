@@ -34,6 +34,15 @@ public class CloudwatchService {
     private ArrayBlockingQueue<MetricScalar> individualMetricsQueue = new ArrayBlockingQueue<MetricScalar>(
             100000);
 
+    private void init() {
+        environmentName = System.getProperty("transitclock.environmentName");
+        accessKey = System.getProperty("transitclock.cloudwatch.awsAccessKey");
+        secretKey = System.getProperty("transitclock.cloudwatch.awsSecretKey");
+        endpoint = System.getProperty("transitclock.cloudwatch.awsEndpoint");
+        logger.info("re-loading system properties env={} awsAccessKey={} awsSecretKey={} awsEndpoint={}",
+                environmentName, accessKey, secretKey, endpoint);
+    }
+
     private class MetricDefinition {
         String metricName;
         MetricType metricType;
@@ -71,6 +80,9 @@ public class CloudwatchService {
 
     private CloudwatchService() {
         logger.info("Cloudwatch service starting up");
+
+        init();
+
         if(StringUtils.isBlank(environmentName) || StringUtils.isBlank(accessKey) || StringUtils.isBlank(secretKey) || StringUtils.isBlank(endpoint)) {
             logger.warn("Cloudwatch monitoring not enabled, please specify environmentName, accessKey, secretKey and endpoint in configuration file");
         }else{
@@ -95,6 +107,37 @@ public class CloudwatchService {
             singleton = new CloudwatchService();
         return singleton;
     }
+
+
+    /**
+     * increment the metric sum
+     * @param metricName the metric to increment
+     */
+    public void sumMetric(String metricName) {
+        saveMetric(metricName, 1.0, 1, CloudwatchService.MetricType.SUM, CloudwatchService.ReportingIntervalTimeUnit.MINUTE, false);
+    }
+
+    /**
+     * provide another value to average into a rolling average metric
+     * @param metricName the rolling average metric
+     * @param metricValue the value to merge in
+     */
+    public void averageMetric(String metricName, double metricValue) {
+        saveMetric(metricName, metricValue, 1, CloudwatchService.MetricType.AVERAGE, CloudwatchService.ReportingIntervalTimeUnit.MINUTE, false);
+    }
+
+    /**
+     * track a rate (such as cache miss/hit rate) and the overall usage count.
+     * @param metricName
+     * @param hit
+     */
+    public void rateMetric(String metricName, boolean hit) {
+        double metricValue = (hit? 1.0: 0.0);
+        saveMetric(metricName, metricValue, 1, CloudwatchService.MetricType.SUM, CloudwatchService.ReportingIntervalTimeUnit.MINUTE, false);
+        saveMetric(metricName + "Rate", metricValue, 1, CloudwatchService.MetricType.AVERAGE, CloudwatchService.ReportingIntervalTimeUnit.MINUTE, true);
+
+    }
+
 
     /**
      *
@@ -145,8 +188,11 @@ public class CloudwatchService {
                 metricDefinition.reportingIntervalInMillis = reportingInterval * 24l * 60l * 60l * 1000l;
             this.metricMap.put(metricName, metricDefinition);
         }
-        logger.info("saving metric for summarized publication to Cloudwatch [{}]={}", metricName, metricValue);
-        this.metricMap.get(metricName).data.add(metricValue);
+        logger.debug("saving metric for summarized publication to Cloudwatch [{}]={}", metricName, metricValue);
+        MetricDefinition metricDefinition = this.metricMap.get(metricName);
+        synchronized (metricDefinition) {
+            metricDefinition.data.add(metricValue);
+        }
     }
 
     private void publishMetric(String metricName, Double metricValue){
@@ -200,7 +246,7 @@ public class CloudwatchService {
             List<MetricScalar> records = new ArrayList<MetricScalar>();
             individualMetricsQueue.drainTo(records, _batchSize);
             for(MetricScalar metricScalar : records){
-                logger.info("Publishing individual metric [{}]={}", metricScalar.metricName, metricScalar.metricValue);
+                logger.debug("Publishing individual metric [{}]={}", metricScalar.metricName, metricScalar.metricValue);
                 if(metricScalar.formatAsPercent){
                     publishMetricAsPercent(metricScalar.metricName, metricScalar.metricValue);
                 }else{
@@ -224,26 +270,33 @@ public class CloudwatchService {
                       if (metricDefinition.lastUpdate == null)
                         continue;
                       long dateDiff = now.getTime() - metricDefinition.lastUpdate.getTime();
+
+                      Collection<Double> dataCopy = new ArrayList<>();
+                      synchronized (metricDefinition) {
+                          if (metricDefinition.data != null && !metricDefinition.data.isEmpty()) {
+                              dataCopy = new ArrayList(metricDefinition.data);
+                              metricDefinition.data.clear();
+                          }
+                      }
+
                       Double metric = null;
                       if (dateDiff >= metricDefinition.reportingIntervalInMillis) {
                           if (metricDefinition.metricType == MetricType.AVERAGE) {
-                              Collection<Double> dataCopy = new ArrayList<Double>(metricDefinition.data);
                               if (dataCopy.isEmpty()) continue;
                               metric = MathUtils.average(dataCopy);
                           } else if (metricDefinition.metricType == MetricType.COUNT) {
-                              metric = new Double(metricDefinition.data.size());
+                              metric = new Double(dataCopy.size());
                           } else if (metricDefinition.metricType == MetricType.SUM) {
-                              metric = MathUtils.sum(metricDefinition.data);
+                              metric = MathUtils.sum(dataCopy);
                           } else if (metricDefinition.metricType == MetricType.MIN) {
-                              if (metricDefinition.data.size() < 1)
+                              if (dataCopy.size() < 1)
                                   return;
-                              metric = MathUtils.min(metricDefinition.data);
+                              metric = MathUtils.min(dataCopy);
                           } else if (metricDefinition.metricType == MetricType.MAX) {
-                              if (metricDefinition.data.size() < 1)
+                              if (dataCopy.size() < 1)
                                   return;
-                              metric = MathUtils.max(metricDefinition.data);
+                              metric = MathUtils.max(dataCopy);
                           }
-                          metricDefinition.data.clear();
                           metricDefinition.lastUpdate = now;
                       }
                       if (metric != null) {
@@ -254,11 +307,11 @@ public class CloudwatchService {
                           }
                       }
                   } catch (Exception e) {
-                    logger.error("issue with metric {}, {}", metricName, e ,e);
+                    logger.error("issue with metric " + metricName + ": ", e);
                   }
                 }
             } catch (Exception e) {
-                logger.error("Exception with metrics: {} {}", e.getMessage(), e, e);
+                logger.error("Exception with metrics: ", e);
             }
         }
     }

@@ -17,30 +17,29 @@
 
 package org.transitclock.api.gtfsRealtime;
 
+import com.google.transit.realtime.GtfsRealtime.*;
+import com.google.transit.realtime.GtfsRealtime.FeedHeader.Incrementality;
+import com.google.transit.realtime.GtfsRealtime.VehiclePosition.VehicleStopStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.transitclock.api.utils.AgencyTimezoneCache;
+import org.transitclock.core.dataCache.CanceledTripKey;
+import org.transitclock.ipc.clients.ConfigInterfaceFactory;
+import org.transitclock.ipc.clients.PredictionsInterfaceFactory;
+import org.transitclock.ipc.clients.VehiclesInterfaceFactory;
+import org.transitclock.ipc.data.IpcCanceledTrip;
+import org.transitclock.ipc.data.IpcVehicleGtfsRealtime;
+import org.transitclock.ipc.interfaces.ConfigInterface;
+import org.transitclock.ipc.interfaces.VehiclesInterface;
+import org.transitclock.utils.Time;
+
 import java.rmi.RemoteException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Collection;
 import java.util.Date;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.transitclock.api.utils.AgencyTimezoneCache;
-import org.transitclock.ipc.clients.VehiclesInterfaceFactory;
-import org.transitclock.ipc.data.IpcVehicleGtfsRealtime;
-import org.transitclock.ipc.interfaces.VehiclesInterface;
-import org.transitclock.utils.Time;
-
-import com.google.transit.realtime.GtfsRealtime.FeedEntity;
-import com.google.transit.realtime.GtfsRealtime.FeedHeader;
-import com.google.transit.realtime.GtfsRealtime.FeedMessage;
-import com.google.transit.realtime.GtfsRealtime.Position;
-import com.google.transit.realtime.GtfsRealtime.TripDescriptor;
-import com.google.transit.realtime.GtfsRealtime.TripDescriptor.ScheduleRelationship;
-import com.google.transit.realtime.GtfsRealtime.VehicleDescriptor;
-import com.google.transit.realtime.GtfsRealtime.VehiclePosition;
-import com.google.transit.realtime.GtfsRealtime.FeedHeader.Incrementality;
-import com.google.transit.realtime.GtfsRealtime.VehiclePosition.VehicleStopStatus;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * For creating GTFS-realtime Vehicle feed. The data is obtained via RMI.
@@ -96,23 +95,24 @@ public class GtfsRtVehicleFeed {
 							.setTripId(vehicleData.getTripId())
 							
 							.setStartDate(tripStartDateStr);
-			if(vehicleData.isCanceled())
-				tripDescriptor.setScheduleRelationship(ScheduleRelationship.CANCELED);
+
 			if(vehicleData.getFreqStartTime()>0)
 			{
 				String tripStartTimeStr=gtfsRealtimeTimeFormatter.format(new Date(vehicleData.getFreqStartTime()));
 				tripDescriptor.setStartTime(tripStartTimeStr);
 			}
 
+			TripDescriptor.ScheduleRelationship scheduleRelationship = getScheduleRelationship(vehicleData);
+
 			// Set the relation between this trip and the static schedule. ADDED and CANCELED not supported.
 			if (vehicleData.isTripUnscheduled()) {
-				// A trip that is running with no schedule associated to it - 
+				// A trip that is running with no schedule associated to it -
 				// this value is used to identify trips defined in GTFS frequencies.txt with exact_times = 0
 				tripDescriptor.setScheduleRelationship(TripDescriptor.ScheduleRelationship.UNSCHEDULED);
 			} else {
-				// Trip that is running in accordance with its GTFS schedule, 
+				// Trip that is running in accordance with its GTFS schedule,
 				// or is close enough to the scheduled trip to be associated with it.
-				tripDescriptor.setScheduleRelationship(TripDescriptor.ScheduleRelationship.SCHEDULED);
+				tripDescriptor.setScheduleRelationship(scheduleRelationship);
 			}
 
 			vehiclePosition.setTrip(tripDescriptor);
@@ -168,6 +168,55 @@ public class GtfsRtVehicleFeed {
 		return vehiclePosition.build();
 	}
 
+	private VehiclePosition createCanceledVehiclePosition(String vehicleId, IpcCanceledTrip canceledTrip) throws ParseException {
+		// Create the parent VehiclePosition object that is returned.
+		VehiclePosition.Builder vehiclePosition = VehiclePosition.newBuilder();
+		TripDescriptor.Builder tripDescriptor = TripDescriptor.newBuilder();
+
+		if(canceledTrip.getRouteId() != null){
+			tripDescriptor.setRouteId(canceledTrip.getRouteId());
+		}
+
+		if(canceledTrip.getTripId() != null){
+			tripDescriptor.setTripId(canceledTrip.getTripId());
+		}
+
+		if(canceledTrip.getTripStartDate() != null){
+			tripDescriptor.setStartDate(canceledTrip.getTripStartDate());
+		}
+
+		tripDescriptor.setScheduleRelationship(TripDescriptor.ScheduleRelationship.CANCELED);
+
+		vehiclePosition.setTrip(tripDescriptor);
+
+
+		// Add the VehicleDescriptor information
+		VehicleDescriptor.Builder vehicleDescriptor =
+				VehicleDescriptor.newBuilder().setId(vehicleId);
+
+		vehiclePosition.setVehicle(vehicleDescriptor);
+
+		// Add the Position information
+		Position.Builder position =
+				Position.newBuilder().setLatitude(canceledTrip.getLatitude())
+						.setLongitude(canceledTrip.getLongitude());
+
+		vehiclePosition.setPosition(position);
+
+		// Return the results
+		return vehiclePosition.build();
+	}
+
+	private TripDescriptor.ScheduleRelationship getScheduleRelationship(IpcVehicleGtfsRealtime prediction){
+
+		if(prediction.isCanceled()){
+			return TripDescriptor.ScheduleRelationship.CANCELED;
+		}
+
+		return TripDescriptor.ScheduleRelationship.SCHEDULED;
+
+	}
+
 	/**
 	 * Creates a GTFS-realtime message for the list of ApiVehicle passed in.
 	 * 
@@ -188,10 +237,23 @@ public class GtfsRtVehicleFeed {
 								System.currentTimeMillis() / Time.MS_PER_SEC);
 		message.setHeader(feedheader);
 
+		HashMap<CanceledTripKey, IpcCanceledTrip> allCanceledTrips = new HashMap<>();
+
+		try {
+			allCanceledTrips = PredictionsInterfaceFactory.get(agencyId).getAllCanceledTrips();
+		} catch (RemoteException e) {
+			logger.error("Exception when getting all canceled trips from RMI", e);
+		}
+
+		boolean serviceIdSuffix = getServiceIdSuffix();
+
 		for (IpcVehicleGtfsRealtime vehicle : vehicles) {
+			if(isVehicleAndTripCanceledAndCached(vehicle, allCanceledTrips, serviceIdSuffix)){
+				continue;
+			}
+
 			FeedEntity.Builder vehiclePositionEntity =
 					FeedEntity.newBuilder().setId(vehicle.getId());
-
 			try {
 				VehiclePosition vehiclePosition =
 						createVehiclePosition(vehicle);
@@ -203,7 +265,40 @@ public class GtfsRtVehicleFeed {
 			}
 		}
 
+		for(Map.Entry<CanceledTripKey, IpcCanceledTrip> entry : allCanceledTrips.entrySet()){
+			CanceledTripKey key = entry.getKey();
+			String vehicleId = key.getVehicleId();
+			IpcCanceledTrip canceledTrip = entry.getValue();
+
+			if(vehicleId != null && canceledTrip != null){
+				FeedEntity.Builder vehiclePositionEntity =
+						FeedEntity.newBuilder().setId(vehicleId);
+				try {
+					VehiclePosition vehiclePosition =
+							createCanceledVehiclePosition(vehicleId, canceledTrip);
+					vehiclePositionEntity.setVehicle(vehiclePosition);
+					message.addEntity(vehiclePositionEntity);
+				} catch (Exception e) {
+					logger.error("Error parsing vehicle data for canceled trip vehicle={}",
+							vehicleId, e);
+				}
+			}
+		}
+
 		return message.build();
+	}
+
+	private boolean getServiceIdSuffix(){
+		ConfigInterface configInterface = ConfigInterfaceFactory.get(agencyId);
+		if (configInterface == null) {
+			logger.error("Agency ID {} is not valid", agencyId);
+			return false;
+		}
+		try {
+			return configInterface.getServiceIdSuffix();
+		} catch (Exception e){
+			return false;
+		}
 	}
 
 	/**
@@ -222,6 +317,21 @@ public class GtfsRtVehicleFeed {
 			logger.error("Exception when getting vehicles from RMI", e);
 		}
 		return vehicles;
+	}
+
+	private boolean isVehicleAndTripCanceledAndCached(IpcVehicleGtfsRealtime vehicle,
+													  Map<CanceledTripKey, IpcCanceledTrip> canceledTrips,
+													  boolean serviceIdSuffix) {
+		String tripId = vehicle.getTripId();
+		String vehicleId = vehicle.getId();
+
+		IpcCanceledTrip canceledTrip = canceledTrips.get(new CanceledTripKey(vehicleId, tripId));
+
+		if(canceledTrip != null && canceledTrip.getTripId() != null && canceledTrip.getTripId().equalsIgnoreCase(tripId)){
+			return true;
+		}
+
+		return false;
 	}
 
 	/**
