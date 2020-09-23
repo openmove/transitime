@@ -153,9 +153,16 @@ public class NextBusAvlModule extends XmlPollingAvlModule {
 		if (lastTime != null) {
 			String lastTimeStr = lastTime.getAttributeValue("time");
 			// Store previous time so that it can be used in the URL
-			// the next time the feed is polled.
-			previousTime = Long.parseLong(lastTimeStr);
-			logger.debug("PreviousTime={}", Time.dateTimeStr(previousTime));
+			// the next time the feed is polled.		
+			if(previousTime-Long.parseLong(lastTimeStr)>0 && Math.abs(previousTime-Long.parseLong(lastTimeStr))>Time.MS_PER_MIN)
+			{
+				previousTime = Long.parseLong(lastTimeStr);
+				logger.debug("PreviousTime={}", Time.dateTimeStr(previousTime));
+			}else
+			{
+				logger.warn("Not using PreviousTime={}",Long.parseLong(lastTimeStr));
+			}
+			
 		}
 
 		// The return value for the method
