@@ -94,6 +94,8 @@ public class NextBusAvlModule extends XmlPollingAvlModule {
 	// then can end up with some really old reports.
 	public long previousTime = System.currentTimeMillis() - 1*Time.MS_PER_MIN;
 	
+	public boolean startup=true;
+	
 	private static final Logger logger = 
 			LoggerFactory.getLogger(NextBusAvlModule.class);	
 
@@ -154,13 +156,14 @@ public class NextBusAvlModule extends XmlPollingAvlModule {
 			String lastTimeStr = lastTime.getAttributeValue("time");
 			// Store previous time so that it can be used in the URL
 			// the next time the feed is polled.		
-			if(previousTime-Long.parseLong(lastTimeStr)>0 && Math.abs(previousTime-Long.parseLong(lastTimeStr))>Time.MS_PER_MIN)
+			if((Long.parseLong(lastTimeStr)-previousTime>0 && Math.abs(previousTime-Long.parseLong(lastTimeStr))>Time.MS_PER_MIN)|| startup)
 			{
 				previousTime = Long.parseLong(lastTimeStr);
 				logger.debug("PreviousTime={}", Time.dateTimeStr(previousTime));
+				startup=false;
 			}else
 			{
-				logger.warn("Not using PreviousTime={}",Long.parseLong(lastTimeStr));
+				logger.warn("Not using PreviousTime={}",Time.dateTimeStr(Long.parseLong(lastTimeStr)));
 			}
 			
 		}
