@@ -62,8 +62,9 @@ public class AvlModuleFeedCombined extends NextBusAvlModule {
 		Element rootNode = doc.getRootElement();
 		
 		Element vehiclesNode = rootNode.getChild("vehicles");
-		previousTime = System.currentTimeMillis();
+		
 		List<Element> vehicles = vehiclesNode.getChildren("vehicle");
+		
 		for (Element vehicle : vehicles) {
 			
 			//"2020-09-08 15:04:25"
