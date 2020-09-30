@@ -131,15 +131,28 @@
 		<!-- I believe not needed <dependency> <groupId>org.apache.lucene</groupId>
                 <artifactId>lucene-core</artifactId> <version>3.6.2</version> </dependency> -->
 		<!-- For JMS for fancy handling of AVL feeds -->
+		<!-- https://mvnrepository.com/artifact/org.hornetq/hornetq-server -->
+		<dependency>
+		    <groupId>org.hornetq</groupId>
+		    <artifactId>hornetq-server</artifactId>
+		    <version>2.4.0.Final</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.hornetq/hornetq-jms-server -->
+		<dependency>
+		    <groupId>org.hornetq</groupId>
+		    <artifactId>hornetq-jms-server</artifactId>
+		    <version>2.4.0.Final</version>
+		</dependency>
+
 		<dependency>
 			<groupId>org.hornetq</groupId>
 			<artifactId>hornetq-core-client</artifactId>
-			<version>2.3.25.Final</version>
+			<version>2.4.0.Final</version>
 		</dependency>
 		<dependency>
 			<groupId>org.hornetq</groupId>
 			<artifactId>hornetq-jms-client</artifactId>
-			<version>2.3.25.Final</version>
+			<version>2.4.0.Final</version>
 		</dependency>
 		<!-- For Amigocloud web sockets AVL feed -->
 		<dependency>
