@@ -426,7 +426,7 @@
 		<appender-ref ref="MATCH" />
 	</logger>
 
-	<logger name="org.transitclock.avl" level="info" additivity="false">
+	<logger name="org.transitclock.avl" level="debug" additivity="false">
 		<appender-ref ref="AVL" />
 	</logger>
 
