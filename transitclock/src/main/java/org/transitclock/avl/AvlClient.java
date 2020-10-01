@@ -173,6 +173,7 @@ public class AvlClient implements Runnable {
 			AvlProcessor.getInstance().processAvlReport(avlReport);
 		} catch (Exception e) {
 			e.printStackTrace();
+			logger.error(e.getMessage(), e);
 			// Catch unexpected exceptions so that can continue to use the same
 			// AVL thread even if there is an unexpected problem. Only let
 			// Errors, such as OutOfMemory errors, through.
