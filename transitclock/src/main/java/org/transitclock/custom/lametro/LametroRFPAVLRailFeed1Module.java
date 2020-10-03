@@ -10,7 +10,7 @@ public class LametroRFPAVLRailFeed1Module extends LametroRFPAvlModule {
 	@Override
 	protected String getUrl() {
 		
-		return "http://data.nextbus.com/service/customerfeed/lametro-rail-801/avl";
+		return "http://data.nextbus.com/service/customerfeed/lametro-rail-801/avl?command=lastdata";
 	}
 	
 
