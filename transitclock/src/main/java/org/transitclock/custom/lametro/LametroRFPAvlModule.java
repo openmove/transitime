@@ -69,8 +69,14 @@ public class LametroRFPAvlModule extends NextBusAvlModule {
 				String block=null;
 				if(vehicle.getChild("block")!=null)
 					block=vehicle.getChild("block").getValue();
-				Float speed=new Float(vehicle.getChild("speed").getValue());
-				Float direction=new Float(vehicle.getChild("direction").getValue());
+				
+				Float speed=null;
+				if(vehicle.getChild("speed")!=null)				
+					speed=new Float(vehicle.getChild("speed").getValue());
+				
+				Float direction=null;
+				if(vehicle.getChild("direction")!=null)
+					direction=new Float(vehicle.getChild("direction").getValue());
 				
 				String vehstatus=vehicle.getChild("vehstatus").getValue();
 				if(vehstatus!=null&&vehstatus.equals("f"))
