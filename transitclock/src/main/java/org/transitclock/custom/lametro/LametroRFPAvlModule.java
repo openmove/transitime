@@ -73,6 +73,8 @@ public class LametroRFPAvlModule extends NextBusAvlModule {
 				Float speed=null;
 				if(vehicle.getChild("speed")!=null)				
 					speed=new Float(vehicle.getChild("speed").getValue());
+				else
+					speed=Float.NaN;
 				
 				Float direction=null;
 				if(vehicle.getChild("direction")!=null)
@@ -92,6 +94,7 @@ public class LametroRFPAvlModule extends NextBusAvlModule {
 							null,       // license plate
 							-1,
 							Float.NaN); // passengerFullness
+					
 					if(block!=null&&!block.isEmpty())
 						avlReport.setAssignment(block, AssignmentType.BLOCK_ID);
 					
@@ -119,7 +122,7 @@ public class LametroRFPAvlModule extends NextBusAvlModule {
 	protected String getUrl() {
 		// Determine the URL to use.
 			
-			return "http://data.nextbus.com/service/customerfeed/lametro/avl?command=lastdata&t="+previousTime;
+			return "http://data.nextbus.com/service/customerfeed/lametro-rail-802/avl?command=lastdata&t="+previousTime;
 	}
 	
 	/**
