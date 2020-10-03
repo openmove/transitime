@@ -122,7 +122,7 @@ public class LametroRFPAvlModule extends NextBusAvlModule {
 	protected String getUrl() {
 		// Determine the URL to use.
 			
-			return "http://data.nextbus.com/service/customerfeed/lametro-rail-802/avl?command=lastdata&t="+previousTime;
+			return "http://data.nextbus.com/service/customerfeed/lametro/avl?command=lastdata&t="+previousTime;
 	}
 	
 	/**
