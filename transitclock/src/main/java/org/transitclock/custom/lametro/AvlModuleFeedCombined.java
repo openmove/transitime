@@ -37,8 +37,7 @@ public class AvlModuleFeedCombined extends NextBusAvlModule {
 	protected void getAndProcessData() throws Exception {
 				
 		Collection<AvlReport> avlReports = null;
-	
-		
+			
 		URL rfp = new URL("http://data.nextbus.com/service/customerfeed/lametro/avl?command=lastdata");
 		
 		BufferedReader in = new BufferedReader(new InputStreamReader(rfp.openStream()));
@@ -56,9 +55,7 @@ public class AvlModuleFeedCombined extends NextBusAvlModule {
 	}
 	protected HashMap<String, String> extractAssignmentData(Document doc)
 	{
-		
-		assignments.clear();
-		
+						
 		Element rootNode = doc.getRootElement();
 		
 		Element vehiclesNode = rootNode.getChild("vehicles");
