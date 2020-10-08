@@ -127,7 +127,7 @@ public class AvlModuleFeedCombined extends NextBusAvlModule {
 	@Override
 	protected void processAvlReport(AvlReport avlReport) {
 		
-		if(assignments.get(avlReport.getVehicleId())!=null)
+		if(assignments.get(avlReport.getVehicleId())!=null&&avlReport.getAssignmentType()!=AssignmentType.UNSET)
 		{				
 			avlReport.setAssignment(assignments.get(avlReport.getVehicleId()), AssignmentType.BLOCK_ID);
 		}

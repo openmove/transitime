@@ -148,6 +148,8 @@ public class KalmanPredictionGeneratorImpl extends PredictionGeneratorDefaultImp
 						Indices previousVehicleIndices = new Indices(travelTimeDetails.getArrival());
 
 						KalmanError last_prediction_error = lastVehiclePredictionError(kalmanErrorCache, previousVehicleIndices);
+						
+						getMonitoring().averageMetric("PredictionKalmanErrorNumberUpdates", last_prediction_error.getUpdates());
 
 						logger.debug("Using error value: " + last_prediction_error +" found with vehicle id "+travelTimeDetails.getArrival().getVehicleId()+ " from: "+new KalmanErrorCacheKey(previousVehicleIndices).toString());
 
