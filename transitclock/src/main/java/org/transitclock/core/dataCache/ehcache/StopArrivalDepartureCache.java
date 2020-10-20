@@ -78,8 +78,10 @@ public class StopArrivalDepartureCache extends StopArrivalDepartureCacheInterfac
 		StopEvents result = cache.get(key);
 
 		if (result != null) {
+			logger.trace("Found events for key {}", key);
 			return (List<IpcArrivalDeparture>) result.getEvents();
 		} else {
+			logger.trace("No events in cache for key {}", key);
 			return null;
 		}
 	}
