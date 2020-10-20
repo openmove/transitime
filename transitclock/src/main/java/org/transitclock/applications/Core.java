@@ -53,6 +53,7 @@ import java.io.PrintWriter;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
@@ -451,7 +452,7 @@ public class Core {
 					CacheTask ct = new CacheTask(startDate, endDate, CacheTask.Type.StopArrivalDepartureCacheFactory);
 					pp.enqueue(ct);
 				}
-
+				/*
 				if(FrequencyBasedHistoricalAverageCache.getInstance()!=null)
 				{
 					CacheTask ct = new CacheTask(startDate, endDate, CacheTask.Type.FrequencyBasedHistoricalAverageCache);
@@ -463,6 +464,7 @@ public class Core {
 					CacheTask ct = new CacheTask(startDate, endDate, CacheTask.Type.ScheduleBasedHistoricalAverageCache);
 					pp.enqueue(ct);
 				}
+				*/
 
 				endDate=startDate;
 			}
@@ -539,6 +541,12 @@ public class Core {
 
 			// Initialize the core now
 			createCore();
+			
+			ServiceUtils serviceUtils = new ServiceUtils(Core.getInstance().getDbConfig());
+			
+			Collection<String> test = serviceUtils.getServiceIds(Calendar.getInstance().getTime());
+			System.out.println(test.toString());
+			
 
 			// Start any optional modules.
 			List<String> optionalModuleNames = CoreConfig.getOptionalModules();
