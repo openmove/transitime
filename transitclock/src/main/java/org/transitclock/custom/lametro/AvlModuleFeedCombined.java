@@ -104,9 +104,11 @@ public class AvlModuleFeedCombined extends NextBusAvlModule {
 							-1,
 							Float.NaN); // passengerFullness
 					if(block!=null&&!block.isEmpty())
+					{				
 						avlReport.setAssignment(block, AssignmentType.BLOCK_ID);
-					
-					assignments.put(vehicleId, block);
+						assignments.put(vehicleId, block);
+					}
+									
 				}
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -127,7 +129,7 @@ public class AvlModuleFeedCombined extends NextBusAvlModule {
 	@Override
 	protected void processAvlReport(AvlReport avlReport) {
 		
-		if(assignments.get(avlReport.getVehicleId())!=null&&avlReport.getAssignmentType()!=AssignmentType.UNSET)
+		if(assignments.get(avlReport.getVehicleId())!=null)
 		{				
 			avlReport.setAssignment(assignments.get(avlReport.getVehicleId()), AssignmentType.BLOCK_ID);
 		}
