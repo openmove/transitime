@@ -1,10 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<ehcache:config xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
-				xmlns:ehcache='http://www.ehcache.org/v3'
-				xsi:schemaLocation="http://www.ehcache.org/v3 http://www.ehcache.org/schema/ehcache-core-3.1.xsd">
-	<ehcache:persistence directory="/usr/local/transitclock/cache/" />
-	<ehcache:disk-store thread-pool="pool-disk" />
+<ehcache:config
+  xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
+  xmlns:terracotta='http://www.ehcache.org/v3/clustered'
+  xmlns:ehcache='http://www.ehcache.org/v3'
+  xsi:schemaLocation="http://www.ehcache.org/v3 http://www.ehcache.org/schema/ehcache-core-3.1.xsd
+    http://www.ehcache.org/v3/clustered http://www.ehcache.org/schema/ehcache-clustered-ext-3.1.xsd">
+
+    <ehcache:service>
+    <terracotta:cluster>
+      <terracotta:connection url="terracotta://tc-server:9410/clustered"/>
+      <terracotta:server-side-config auto-create="true">
+        <terracotta:default-resource from="offheap-1"/>
+      </terracotta:server-side-config>
+    </terracotta:cluster>
+ 	</ehcache:service>
+	
 
 
 	<ehcache:cache alias="dwellTimeModelCache">
@@ -15,11 +26,9 @@
 		</ehcache:expiry>
 		<ehcache:resources>
 			<ehcache:heap unit="entries">2000</ehcache:heap>
-			<ehcache:offheap unit="MB">100</ehcache:offheap>
-			<ehcache:disk unit="MB">200</ehcache:disk>
+			<ehcache:offheap unit="MB">100</ehcache:offheap>		
 		</ehcache:resources>
-		<ehcache:disk-store-settings thread-pool="pool-disk"
-									 writer-concurrency="1" />
+		
 	</ehcache:cache>
 
 	<ehcache:cache alias="arrivalDeparturesByTrip">
@@ -31,10 +40,9 @@
 		<ehcache:resources>
 			<ehcache:heap unit="entries">63000</ehcache:heap>
 			<ehcache:offheap unit="GB">2</ehcache:offheap>
-			<ehcache:disk persistent="true" unit="GB">40</ehcache:disk>
+			<terracotta:clustered-dedicated unit="GB">4</terracotta:clustered-dedicated>
 		</ehcache:resources>
-		<ehcache:disk-store-settings thread-pool="pool-disk"
-									 writer-concurrency="1" />
+		
 	</ehcache:cache>
 
 	<ehcache:cache alias="arrivalDeparturesByStop">
@@ -46,10 +54,9 @@
 		<ehcache:resources>
 			<ehcache:heap unit="entries">15000</ehcache:heap>
 			<ehcache:offheap unit="GB">2</ehcache:offheap>
-			<ehcache:disk persistent="true" unit="GB">40</ehcache:disk>
+			<terracotta:clustered-dedicated unit="GB">4</terracotta:clustered-dedicated>
 		</ehcache:resources>
-		<ehcache:disk-store-settings thread-pool="pool-disk"
-									 writer-concurrency="1" />
+		
 	</ehcache:cache>
 
 	<ehcache:cache alias="KalmanErrorCache">
@@ -60,8 +67,8 @@
 		</ehcache:expiry>
 		<ehcache:resources>
 			<ehcache:heap unit="entries">100000</ehcache:heap>
-			<ehcache:offheap unit="GB">2</ehcache:offheap>
-			<ehcache:disk persistent="true" unit="GB">15</ehcache:disk>
+			<ehcache:offheap unit="GB">1</ehcache:offheap>
+			<terracotta:clustered-dedicated unit="GB">2</terracotta:clustered-dedicated>
 		</ehcache:resources>
 	</ehcache:cache>
 
