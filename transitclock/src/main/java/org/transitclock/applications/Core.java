@@ -517,22 +517,20 @@ public class Core {
 					logger.error("Failed to populate cache.", e);
 				}
 			}
-
+			// Initialize the cache now 			
+			CacheManagerFactory.getInstance();
+			
 			// Close cache if shutting down.
 			Runtime.getRuntime().addShutdownHook(new Thread(new Runnable()
 			{
 		            public void run()
 		            {
-		            	try {
-		            		System.out.println("Calling shutdown hook.");
+		            	try {		            		
 							logger.info("Closing cache.");
 							System.out.println("Closing cache...");
 							CacheManagerFactory.getInstance().close();
-							logger.info("Cache closed.");
-							System.out.println("Cache closed.");
-						} catch (Exception e) {
-							System.out.println("Cache close failed.");
-							e.printStackTrace();
+							logger.info("Cache closed.");							
+						} catch (Exception e) {														
 							logger.error("Cache close failed...");
 							logger.error(e.getMessage(),e);
 						}
