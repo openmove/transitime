@@ -16,6 +16,12 @@
  */
 package org.transitclock.core;
 
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.transitclock.applications.Core;
@@ -39,6 +45,12 @@ import org.transitclock.ipc.data.IpcPrediction.ArrivalOrDeparture;
 import org.transitclock.monitoring.CloudwatchService;
 import org.transitclock.utils.Geo;
 import org.transitclock.utils.Time;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * When a new match based on AVL data is made for a vehicle the methods in this
@@ -347,7 +359,7 @@ public class PredictionGeneratorDefaultImpl extends PredictionGenerator implemen
 	 * @return List of Predictions. Can be empty but will not be null.
 	 */
 	@Override
-	public List<IpcPrediction> generate(VehicleState vehicleState) {	
+	public List<IpcPrediction> generate(VehicleState vehicleState) {
 		// For layovers always use arrival time for end of trip and
 		// departure time for anything else. But for non-layover stops
 		// can use either arrival or departure times, depending on what
@@ -575,7 +587,7 @@ public class PredictionGeneratorDefaultImpl extends PredictionGenerator implemen
 		//logger.debug("Using transiTime default algorithm for travel time prediction : " + indices + " Value: "+indices.getTravelTimeForPath());
 		if(storeTravelTimeStopPathPredictions.getValue())
 		{		
-			PredictionForStopPath predictionForStopPath=new PredictionForStopPath(vehicleState.getVehicleId(), new Date(Core.getInstance().getSystemTime()) , new Double(new Long(indices.getTravelTimeForPath()).intValue()), indices.getTrip().getId(), indices.getStopPathIndex(), "TRANSITIME DEFAULT", true, null);		
+			PredictionForStopPath predictionForStopPath=new PredictionForStopPath(vehicleState.getVehicleId(), new Date(Core.getInstance().getSystemTime()) , new Double(new Long(indices.getTravelTimeForPath()).intValue()), indices.getTrip().getId(), indices.getStopPathIndex(), "TRANSITIME DEFAULT", true, null);
 			Core.getInstance().getDbLogger().add(predictionForStopPath);
 			StopPathPredictionCache.getInstance().putPrediction(predictionForStopPath);
 		}
