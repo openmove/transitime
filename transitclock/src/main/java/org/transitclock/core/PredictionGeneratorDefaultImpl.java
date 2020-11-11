@@ -46,12 +46,6 @@ import org.transitclock.monitoring.CloudwatchService;
 import org.transitclock.utils.Geo;
 import org.transitclock.utils.Time;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 /**
  * When a new match based on AVL data is made for a vehicle the methods in this
  * class are used to generate the corresponding predictions.
