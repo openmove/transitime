@@ -39,8 +39,6 @@ import org.transitclock.core.predictiongenerator.scheduled.average.HistoricalAve
 import org.transitclock.db.structs.AvlReport;
 import org.transitclock.db.structs.PredictionEvent;
 import org.transitclock.db.structs.PredictionForStopPath;
-import org.transitclock.db.structs.VehicleEvent;
-import org.transitclock.ipc.data.IpcPrediction;
 
 /**
  * @author Sean Óg Crudden This is a prediction generator that uses a Kalman
@@ -120,7 +118,7 @@ public class KalmanPredictionGeneratorImpl extends PredictionGeneratorDefaultImp
 			 * little to say about todays.
 			 */
 			if (travelTimeDetails!=null) {
-
+				getMonitoring().rateMetric("PredictionKalmanHeadwayHit", true);
 				logger.debug("Kalman has last vehicle info for : " +indices.toString()+ " : "+travelTimeDetails);
 
 				Date nearestDay = DateUtils.truncate(avlReport.getDate(), Calendar.DAY_OF_MONTH);
@@ -138,7 +136,8 @@ public class KalmanPredictionGeneratorImpl extends PredictionGeneratorDefaultImp
 				 * to extended class for prediction.
 				 */
 				if (lastDaysTimes != null && lastDaysTimes.size() >= minKalmanDays.getValue().intValue()) {
-
+					getMonitoring().rateMetric("PredictionKalmanHistoryHit", true);
+					getMonitoring().averageMetric("PredictionKalmanHistorySize", lastDaysTimes.size());
 					logger.debug("Generating Kalman prediction for : "+indices.toString());
 
 					try {
@@ -185,7 +184,10 @@ public class KalmanPredictionGeneratorImpl extends PredictionGeneratorDefaultImp
 						kalmanErrorCache.putErrorValue(indices, kalmanPredictionResult.getFilterError());
 						
 						double percentageDifferecence = Math.abs(100 * ((predictionTime - alternatePrediction) / (double)alternatePrediction));
-						
+
+						if (!Double.isInfinite(percentageDifferecence))
+							getMonitoring().averageMetric("PredictionKalmanAverageDifference", Math.abs(percentageDifferecence));
+
 						if(((percentageDifferecence *  alternatePrediction)/100) > tresholdForDifferenceEventLog.getValue())
 						{						
 							if(percentageDifferecence > percentagePredictionMethodDifferenceneEventLog.getValue())
@@ -212,17 +214,29 @@ public class KalmanPredictionGeneratorImpl extends PredictionGeneratorDefaultImp
 							Core.getInstance().getDbLogger().add(predictionForStopPath);
 							StopPathPredictionCache.getInstance().putPrediction(predictionForStopPath);
 						}
+						getMonitoring().rateMetric("PredictionKalmanHit", true);
+						getMonitoring().sumMetric("PredictionGenerationKalman");
 						return predictionTime;
 
 					} catch (Exception e) {
 						logger.error(e.getMessage(), e);
 					}
+				} else {
+					getMonitoring().rateMetric("PredictionKalmanHistoryHit", false);
+					if (lastDaysTimes == null)
+						getMonitoring().averageMetric("PredictionKalmanHistorySize", 0.0);
+					else
+						getMonitoring().averageMetric("PredictionKalmanHistorySize", lastDaysTimes.size());
 				}
+			} else {
+				getMonitoring().rateMetric("PredictionKalmanHeadwayHit", false);
 			}
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		// instrument kalman miss
+		getMonitoring().rateMetric("PredictionKalmanHit", false);
 		return alternatePrediction;
 	}
 
