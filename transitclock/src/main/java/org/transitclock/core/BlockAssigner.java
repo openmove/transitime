@@ -26,9 +26,10 @@ import org.transitclock.gtfs.DbConfig;
 import org.transitclock.utils.Time;
 
 import java.util.Collection;
+import java.util.Date;
 
 /**
- * Singleton class that handles block assignments from AVL feed. 
+ * Singleton class that handles block assignments from AVL feed.
  *
  * @author SkiBu Smith
  *
@@ -93,7 +94,7 @@ public class BlockAssigner {
 							avlReport.getAssignmentId());
 					// If there is a block for the current service ID
 					if (blockForServiceId != null) {
-						// If found a best match so far then remember it						
+						// If found a best match so far then remember it
 						if (activeBlock == null
 								|| blockForServiceId.isActive(
 								avlReport.getTime(),
@@ -128,6 +129,25 @@ public class BlockAssigner {
 							avlReport.getAssignmentId(), block.getId());
 					return block;
 				} else {
+					if (config.getServiceIdSuffix()) {
+						for (String serviceId : Core.getInstance().getDbConfig().getCurrentServiceIds()) {
+							Trip tripPrefix = config.getTrip(avlReport.getAssignmentId() + "-" + serviceId);
+							if (tripPrefix != null
+									&& tripPrefix.getBlock() != null
+									&& tripPrefix.getBlock()
+									.isActive(new Date(), Core.getInstance().getTime().getSecondsIntoDay(new Date()), -1)) {
+								Block blockPrefix = tripPrefix.getBlock();
+								logger.debug("For vehicleId={} the trip assigngment from "
+												+ "the AVL feed is tripId={} and serviceId={} which corresponds to "
+												+ "blockId={}",
+										avlReport.getVehicleId(),
+										avlReport.getAssignmentId(),
+										serviceId,
+										blockPrefix.getId());
+								return blockPrefix;
+							}
+						}
+					}
 					logger.error("For vehicleId={} AVL report specifies " +
 									"assignment tripId={} but that trip is not valid.",
 							avlReport.getVehicleId(),
