@@ -1,29 +1,20 @@
 /*
  * This file is part of Transitime.org
- * 
+ *
  * Transitime.org is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License (GPL) as published by the
  * Free Software Foundation, either version 3 of the License, or any later
  * version.
- * 
+ *
  * Transitime.org is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
  * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
  * details.
- * 
+ *
  * You should have received a copy of the GNU General Public License along with
  * Transitime.org . If not, see <http://www.gnu.org/licenses/>.
  */
 package org.transitclock.gtfs;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
 
 import org.hibernate.HibernateException;
 import org.hibernate.SQLQuery;
@@ -31,28 +22,17 @@ import org.hibernate.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.transitclock.applications.Core;
+import org.transitclock.config.BooleanConfigValue;
 import org.transitclock.config.StringConfigValue;
 import org.transitclock.core.ServiceUtils;
 import org.transitclock.db.hibernate.HibernateUtils;
-import org.transitclock.db.structs.ActiveRevisions;
-import org.transitclock.db.structs.Agency;
-import org.transitclock.db.structs.Block;
 import org.transitclock.db.structs.Calendar;
-import org.transitclock.db.structs.CalendarDate;
-import org.transitclock.db.structs.FareAttribute;
-import org.transitclock.db.structs.FareRule;
-import org.transitclock.db.structs.Frequency;
-import org.transitclock.db.structs.Route;
-import org.transitclock.db.structs.Stop;
-import org.transitclock.db.structs.StopPath;
-import org.transitclock.db.structs.Transfer;
-import org.transitclock.db.structs.TravelTimesForStopPath;
-import org.transitclock.db.structs.TravelTimesForTrip;
-import org.transitclock.db.structs.Trip;
-import org.transitclock.db.structs.TripPattern;
+import org.transitclock.db.structs.*;
 import org.transitclock.utils.IntervalTimer;
 import org.transitclock.utils.MapKey;
 import org.transitclock.utils.Time;
+
+import java.util.*;
 
 /**
  * Reads all the configuration data from the database. The data is based on GTFS
@@ -63,7 +43,7 @@ import org.transitclock.utils.Time;
  * level data can be read in at system startup. This doesn't read in all the
  * low-level data such as paths and travel times. Those items are very
  * voluminous and are therefore lazy loaded.
- * 
+ *
  * @author SkiBu Smith
  *
  */
@@ -92,7 +72,7 @@ public class DbConfig {
 	private Map<String, Route> routesByRouteShortNameMap;
 	// Keyed on stopiD
 	private Map<String, Collection<Route>> routesListByStopIdMap;
-	
+
 	// Keyed on routeId
 	private Map<String, List<TripPattern>> tripPatternsByRouteMap;
 	// For when reading in all trips from db. Keyed on tripId
@@ -118,7 +98,7 @@ public class DbConfig {
 	private Map<String, Stop> stopsMap;
 	// Keyed by stop_code
 	private Map<Integer, Stop> stopsByStopCode;
-	
+
 	// Remember the session. This is a bit odd because usually
 	// close sessions but want to keep it open so can do lazy loading
 	// and so that can read in TripPatterns later using the same session.
@@ -127,21 +107,24 @@ public class DbConfig {
 	private static final Logger logger = LoggerFactory
 			.getLogger(DbConfig.class);
 
-	private StringConfigValue validateTestQuery 
-	= new StringConfigValue("transitclock.db.validateQuery", 
-			"SELECT 1", 
+	private StringConfigValue validateTestQuery
+			= new StringConfigValue("transitclock.db.validateQuery",
+			"SELECT 1",
 			"query to validate database connection");
-	
+
 	public String getValidateTestQuery() {
 		return validateTestQuery.getValue();
 	}
 
-	
+	private BooleanConfigValue serviceIdSuffix = new BooleanConfigValue("transitclock.avl.serviceIdSuffix",
+			false,"suffix tripId with serviceId");
+	public boolean getServiceIdSuffix() { return serviceIdSuffix.getValue(); }
+
 	/********************** Member Functions **************************/
 
 	/**
 	 * Constructor
-	 * 
+	 *
 	 * @param agencyId
 	 */
 	public DbConfig(String agencyId) {
@@ -152,13 +135,13 @@ public class DbConfig {
 	/**
 	 * Returns the global session used for lazy loading data. Useful for
 	 * determining if the global session has changed.
-	 * 
+	 *
 	 * @return the global session used for lazy loading of data
 	 */
 	public final Session getGlobalSession() {
 		return globalSession;
 	}
-	
+
 	/**
 	 * For when the session dies, which happens when db failed over or rebooted.
 	 * Idea is to create a new session that can be attached to persistent
@@ -169,14 +152,14 @@ public class DbConfig {
 		HibernateUtils.clearSessionFactory();
 		globalSession = HibernateUtils.getSession(agencyId);
 	}
-	
+
 	/**
 	 * Initiates the reading of the configuration data from the database. Calls
 	 * actuallyReadData() which does all the work.
 	 * <p>
 	 * NOTE: exits system if config data could not be read in. This is done so
 	 * that action will be taken to fix this issue.
-	 * 
+	 *
 	 * @param configRev
 	 */
 	public void read(int configRev) {
@@ -197,7 +180,7 @@ public class DbConfig {
 			logger.error("Error reading configuration data from db for "
 					+ "configRev={}. NOTE: Exiting because could not read in "
 					+ "data!!!!", configRev, e);
-			
+
 			System.exit(-1);
 		} finally {
 			// Usually would always make sure session gets closed. But
@@ -216,7 +199,7 @@ public class DbConfig {
 	/**
 	 * Creates a map of a map so that blocks can be looked up easily by service
 	 * and block IDs.
-	 * 
+	 *
 	 * @param blocks
 	 *            List of blocks to be put into map
 	 * @return Map keyed on service ID of map keyed on block ID of blocks
@@ -255,7 +238,7 @@ public class DbConfig {
 
 	/**
 	 * To be used by putBlocksIntoMapByRoute().
-	 * 
+	 *
 	 * @param serviceId
 	 * @param routeId
 	 * @param block
@@ -277,12 +260,12 @@ public class DbConfig {
 	 * blocksByRouteMap so that getBlocksForRoute() can be used to retrieve the
 	 * list of blocks that are associated with a route for a specified service
 	 * ID.
-	 * 
+	 *
 	 * @param blocks
 	 * @return the newly created blocksByRouteMap
 	 */
 	private static Map<RouteServiceMapKey, List<Block>>
-			putBlocksIntoMapByRoute(List<Block> blocks) {
+	putBlocksIntoMapByRoute(List<Block> blocks) {
 		Map<RouteServiceMapKey, List<Block>> blocksByRouteMap =
 				new HashMap<RouteServiceMapKey, List<Block>>();
 
@@ -307,7 +290,7 @@ public class DbConfig {
 
 	/**
 	 * Returns List of Blocks associated with the serviceId and routeId.
-	 * 
+	 *
 	 * @param serviceId
 	 *            Specified service ID that want blocks for. Can set to null to
 	 *            blocks for all service IDs for the route.
@@ -322,7 +305,7 @@ public class DbConfig {
 
 	/**
 	 * Returns List of Blocks associated with the routeId for all service IDs.
-	 * 
+	 *
 	 * @param routeId
 	 * @return
 	 */
@@ -332,7 +315,7 @@ public class DbConfig {
 
 	/**
 	 * Converts the stops list into a map.
-	 * 
+	 *
 	 * @param stopsList
 	 *            To be converted
 	 * @return The map, keyed on stop_id
@@ -347,7 +330,7 @@ public class DbConfig {
 
 	/**
 	 * Converts the stops list into a map keyed by stop code.
-	 * 
+	 *
 	 * @param stopsList
 	 *            To be converted
 	 * @return The map, keyed on stop_code
@@ -365,27 +348,27 @@ public class DbConfig {
 	/**
 	 * Returns the stop IDs for the specified route. Stop IDs can be included
 	 * multiple times.
-	 * 
+	 *
 	 * @param routeId
 	 * @return collection of stop IDs for route
 	 */
 	private Collection<String> getStopIdsForRoute(String routeId) {
 		Collection<String> stopIds = new ArrayList<String>(100);
-		
+
 		List<TripPattern> tripPatternsForRoute = tripPatternsByRouteMap.get(routeId);
 		for (TripPattern tripPattern : tripPatternsForRoute) {
 			for (String stopId : tripPattern.getStopIds()) {
 				stopIds.add(stopId);
 			}
 		}
-		
+
 		return stopIds;
 	}
-	
+
 	/**
 	 * Returns map, keyed on stopId, or collection of routes. Allows one to
 	 * determine all routes associated with a stop.
-	 * 
+	 *
 	 * @param routes
 	 * @return map, keyed on stopId, or collection of routes
 	 */
@@ -407,10 +390,10 @@ public class DbConfig {
 		// Return the created map
 		return map;
 	}
-	
+
 	/**
 	 * Converts trip patterns into map keyed on route ID
-	 * 
+	 *
 	 * @param tripPatterns
 	 * @return
 	 */
@@ -433,35 +416,35 @@ public class DbConfig {
 
 	/**
 	 * Reads in trips patterns from db and puts them into a map
-	 * 
+	 *
 	 * @return trip patterns map, keyed by route ID
 	 */
 	private Map<String, List<TripPattern>> putTripPatternsInfoRouteMap() {
-			IntervalTimer timer = new IntervalTimer();
-			logger.debug("About to load trip patterns for all routes...");
+		IntervalTimer timer = new IntervalTimer();
+		logger.debug("About to load trip patterns for all routes...");
 
-			// Use the global session so that don't need to read in any
-			// trip patterns that have already been read in as part of
-			// reading in block assignments. This makes reading of the
-			// trip pattern data much faster.
-			List<TripPattern> tripPatterns =
-					TripPattern.getTripPatterns(globalSession, configRev);
-			Map<String, List<TripPattern>> theTripPatternsByRouteMap = 
-					putTripPatternsIntoMap(tripPatterns);
+		// Use the global session so that don't need to read in any
+		// trip patterns that have already been read in as part of
+		// reading in block assignments. This makes reading of the
+		// trip pattern data much faster.
+		List<TripPattern> tripPatterns =
+				TripPattern.getTripPatterns(globalSession, configRev);
+		Map<String, List<TripPattern>> theTripPatternsByRouteMap =
+				putTripPatternsIntoMap(tripPatterns);
 
-			logger.debug("Reading trip patterns for all routes took {} msec",
-					timer.elapsedMsec());
-			
-			return theTripPatternsByRouteMap;
+		logger.debug("Reading trip patterns for all routes took {} msec",
+				timer.elapsedMsec());
+
+		return theTripPatternsByRouteMap;
 	}
-	
+
 	/**
 	 * Returns the list of trip patterns associated with the specified route.
 	 * Reads the trip patterns from the database and stores them in cache so
 	 * that subsequent calls get them directly from the cache. The first time
 	 * this is called it can take a few seconds. Therefore this is not done at
 	 * startup since want startup to be quick.
-	 * 
+	 *
 	 * @param routeId
 	 * @return List of TripPatterns for the route, or null if no such route
 	 */
@@ -480,7 +463,7 @@ public class DbConfig {
 	/**
 	 * Returns cached map of all Trips. Can be slow first time accessed because
 	 * it can take a while to read in all trips including all sub-data.
-	 * 
+	 *
 	 * @return
 	 */
 	public Map<String, Trip> getTrips() {
@@ -511,7 +494,7 @@ public class DbConfig {
 	 * For more quickly getting a trip. If trip not already read in yet it only
 	 * reads in the specific trip from the db, not all trips like getTrips().
 	 * If trip ID not found then sees if can match to a trip short name.
-	 * 
+	 *
 	 * @param tripIdOrShortName
 	 * @return The trip, or null if no such trip
 	 */
@@ -522,7 +505,7 @@ public class DbConfig {
 		if (trip == null) {
 			logger.debug("Trip for tripIdOrShortName={} not read from db yet "
 					+ "so reading it now.", tripIdOrShortName);
-			
+
 			// Need to sync such that block data, which includes trip
 			// pattern data, is only read serially (not read simultaneously
 			// by multiple threads). Otherwise get a "force initialize loading
@@ -539,47 +522,47 @@ public class DbConfig {
 			logger.debug("Could not find tripId={} so seeing if there is a "
 					+ "tripShortName with that ID.", tripIdOrShortName);
 			trip = getTripUsingTripShortName(tripIdOrShortName);
-			
-			// If the trip successfully read in it also needs to be added to 
+
+			// If the trip successfully read in it also needs to be added to
 			// individualTripsMap so that it doesn't need to be read in next
 			// time getTrip() is called.
 			if (trip != null) {
 				logger.debug("Read tripIdOrShortName={} from db", tripIdOrShortName);
 				individualTripsMap.put(trip.getId(), trip);
-			}				
+			}
 		}
-		
+
 		return trip;
 	}
 
 	/**
 	 * Looks through the trips passed in and returns the one that has
 	 * a service ID that is currently valid.
-	 * 
+	 *
 	 * @param trips
 	 * @return trip whose service ID is currently valid
 	 */
 	private static Trip getTripForCurrentService(List<Trip> trips) {
 		Date now = Core.getInstance().getSystemDate();
-		Collection<String> currentServiceIds = 
+		Collection<String> currentServiceIds =
 				Core.getInstance().getServiceUtils().getServiceIds(now);
 		for (Trip trip : trips) {
 			for (String serviceId : currentServiceIds) {
 				if (trip.getServiceId().equals(serviceId)) {
-					// Found a service ID match so return this trip 
+					// Found a service ID match so return this trip
 					return trip;
 				}
 			}
 		}
-		
+
 		// No such trip is currently active
 		return null;
 	}
-	
+
 	/**
 	 * For more quickly getting a trip. If trip not already read in yet it only
 	 * reads in the specific trip from the db, not all trips like getTrips().
-	 * 
+	 *
 	 * @param tripShortName
 	 * @return
 	 */
@@ -591,7 +574,7 @@ public class DbConfig {
 			Trip trip = getTripForCurrentService(trips);
 			if (trip != null) {
 				logger.debug("Read in trip using tripShortName={}", tripShortName);
-				
+
 				return trip;
 			} else {
 				// Trips for the tripShortName already read in but none valid
@@ -603,7 +586,7 @@ public class DbConfig {
 		}
 
 		logger.info("FIXME tripShortName={} not yet read from db so reading it in now", tripShortName);
-		
+
 		// Trips for the short name not read in yet, do so now
 		// Need to sync such that block data, which includes trip
 		// pattern data, is only read serially (not read simultaneously
@@ -611,7 +594,7 @@ public class DbConfig {
 		// collection" error.
 		synchronized (Block.getLazyLoadingSyncObject()) {
 			trips =	Trip.getTripByShortName(globalSession, configRev,
-							tripShortName);
+					tripShortName);
 		}
 
 		// Add the newly read trips to the map
@@ -623,7 +606,7 @@ public class DbConfig {
 	/**
 	 * Creates a map of routes keyed by route ID so that can easily find a route
 	 * using its ID.
-	 * 
+	 *
 	 * @param routes
 	 * @return
 	 */
@@ -640,7 +623,7 @@ public class DbConfig {
 	/**
 	 * Creates a map of routes keyed by route short name so that can easily find
 	 * a route.
-	 * 
+	 *
 	 * @param routes
 	 * @return
 	 */
@@ -656,7 +639,7 @@ public class DbConfig {
 
 	/**
 	 * Reads the individual data structures from the database.
-	 * 
+	 *
 	 * @param configRev
 	 */
 	private void actuallyReadData(int configRev) {
@@ -708,7 +691,7 @@ public class DbConfig {
 		logger.debug("Reading routes took {} msec", timer.elapsedMsec());
 
 		tripPatternsByRouteMap = putTripPatternsInfoRouteMap();
-		
+
 		timer = new IntervalTimer();
 		List<Stop> stopsList = Stop.getStops(globalSession, configRev);
 		stopsMap = putStopsIntoMap(stopsList);
@@ -720,7 +703,7 @@ public class DbConfig {
 		agencies = Agency.getAgencies(globalSession, configRev);
 		calendars = Calendar.getCalendars(globalSession, configRev);
 		calendarDates = CalendarDate.getCalendarDates(globalSession, configRev);
-		
+
 		calendarDatesMap = new HashMap<Long, List<CalendarDate>>();
 		for (CalendarDate calendarDate : calendarDates) {
 			Long time = calendarDate.getTime();
@@ -731,7 +714,7 @@ public class DbConfig {
 			}
 			calendarDatesForDate.add(calendarDate);
 		}
-		
+
 		fareAttributes =
 				FareAttribute.getFareAttributes(globalSession, configRev);
 		fareRules = FareRule.getFareRules(globalSession, configRev);
@@ -746,7 +729,7 @@ public class DbConfig {
 
 	/**
 	 * Returns the block specified by the service and block ID parameters.
-	 * 
+	 *
 	 * @param serviceId
 	 *            Specified which service class to look for block. If null then
 	 *            will use the first service class for the current time that has
@@ -789,18 +772,18 @@ public class DbConfig {
 
 	}
 
-    public int getBlockCount(){
-        int blockCount = 0;
-        for(String serviceId : blocksByServiceMap.keySet()){
-            blockCount += (blocksByServiceMap.get(serviceId) != null
-                    ? blocksByServiceMap.get(serviceId).size() : 0);
-        }
-        return blockCount;
-    }
+	public int getBlockCount(){
+		int blockCount = 0;
+		for(String serviceId : blocksByServiceMap.keySet()){
+			blockCount += (blocksByServiceMap.get(serviceId) != null
+					? blocksByServiceMap.get(serviceId).size() : 0);
+		}
+		return blockCount;
+	}
 
 	/**
 	 * Returns blocks for the specified blockId for all service IDs.
-	 * 
+	 *
 	 * @param blockId
 	 *            Which blocks to return
 	 * @return Collection of blocks
@@ -821,14 +804,14 @@ public class DbConfig {
 	/**
 	 * Returns unmodifiable collection of blocks associated with the specified
 	 * serviceId.
-	 * 
+	 *
 	 * @param serviceId
 	 * @return Blocks associated with service ID. If no blocks then an empty
 	 *         collection is returned instead of null.
 	 */
 	public Collection<Block> getBlocks(String serviceId) {
 		Map<String, Block> blocksForServiceMap =
-                blocksByServiceMap.get(serviceId);
+				blocksByServiceMap.get(serviceId);
 		if (blocksForServiceMap != null) {
 			Collection<Block> blocksForService = blocksForServiceMap.values();
 			return Collections.unmodifiableCollection(blocksForService);
@@ -839,7 +822,7 @@ public class DbConfig {
 
 	/**
 	 * Returns unmodifiable list of blocks for the agency.
-	 * 
+	 *
 	 * @return blocks for the agency
 	 */
 	public List<Block> getBlocks() {
@@ -848,7 +831,7 @@ public class DbConfig {
 
 	/**
 	 * Returns Map of routesMap keyed on the routeId.
-	 * 
+	 *
 	 * @return
 	 */
 	public Map<String, Route> getRoutesByRouteIdMap() {
@@ -857,7 +840,7 @@ public class DbConfig {
 
 	/**
 	 * Returns ordered list of routes.
-	 * 
+	 *
 	 * @return
 	 */
 	public List<Route> getRoutes() {
@@ -866,7 +849,7 @@ public class DbConfig {
 
 	/**
 	 * Returns the Route with the specified routeId.
-	 * 
+	 *
 	 * @param routeId
 	 * @return The Route specified by the ID, or null if no such route
 	 */
@@ -876,7 +859,7 @@ public class DbConfig {
 
 	/**
 	 * Returns the Route with the specified routeShortName
-	 * 
+	 *
 	 * @param routeShortName
 	 * @return The route, or null if route doesn't exist
 	 */
@@ -886,7 +869,7 @@ public class DbConfig {
 
 	/**
 	 * Returns the Stop with the specified stopId.
-	 * 
+	 *
 	 * @param stopId
 	 * @return The stop, or null if no such stop
 	 */
@@ -896,24 +879,24 @@ public class DbConfig {
 
 	/**
 	 * Returns the Stop with the specified stopCode.
-	 * 
+	 *
 	 * @param stopCode
 	 * @return The stop, or null if no such stop
 	 */
 	public Stop getStop(Integer stopCode) {
 		return stopsByStopCode.get(stopCode);
 	}
-	
+
 	/**
 	 * Returns collection of routes that use the specified stop.
-	 * 
+	 *
 	 * @param stopId
 	 * @return collection of routes for the stop
 	 */
 	public Collection<Route> getRoutesForStop(String stopId) {
 		return routesListByStopIdMap.get(stopId);
 	}
-	
+
 	/**
 	 * Returns list of all calendars
 	 * @return calendars
@@ -933,10 +916,10 @@ public class DbConfig {
 				serviceUtils.getCurrentCalendars(Core.getInstance().getSystemTime());
 		return calendarList;
 	}
-	
+
 	/**
 	 * Returns list of all calendar dates from the GTFS calendar_dates.txt file.
-	 * 
+	 *
 	 * @return list of calendar dates
 	 */
 	public List<CalendarDate> getCalendarDates() {
@@ -947,20 +930,20 @@ public class DbConfig {
 	 * Returns CalendarDate for the current day. This method is pretty quick
 	 * since it looks through a hashmap, instead of doing a linear search
 	 * through a possibly very large number of dates.
-	 * 
+	 *
 	 * @return CalendarDate for current day if there is one, otherwise null.
 	 */
 	public List<CalendarDate> getCalendarDatesForNow() {
-		long startOfDay = 
+		long startOfDay =
 				Time.getStartOfDay(Core.getInstance().getSystemDate());
 		return calendarDatesMap.get(startOfDay);
 	}
-	
+
 	/**
 	 * Returns CalendarDate for the current day. This method is pretty quick
 	 * since it looks through a hashmap, instead of doing a linear search
 	 * through a possibly very large number of dates.
-	 * 
+	 *
 	 * @param epochTime
 	 *            the time that want calendar dates for
 	 * @return CalendarDate for current day if there is one, otherwise null.
@@ -981,7 +964,7 @@ public class DbConfig {
 		}
 		return serviceIds;
 	}
-	
+
 	/**
 	 * Returns list of service IDs that are currently active
 	 * @return current service IDs
@@ -993,15 +976,15 @@ public class DbConfig {
 		}
 		return serviceIds;
 	}
-	
+
 	/**
 	 * There can be multiple agencies but usually there will be just one. For
 	 * getting timezone and such want to be able to easily access the main
 	 * agency, hence this method.
-	 * 
+	 *
 	 * @return The first agency, or null if no agencies configured
 	 */
-	public Agency getFirstAgency() {		
+	public Agency getFirstAgency() {
 		return agencies.size() > 0 ? agencies.get(0) : null;
 	}
 
@@ -1011,7 +994,7 @@ public class DbConfig {
 
 	/**
 	 * Returns the database revision of the configuration data that was read in.
-	 * 
+	 *
 	 * @return The db rev
 	 */
 	public int getConfigRev() {
@@ -1020,7 +1003,7 @@ public class DbConfig {
 
 	/**
 	 * Output contents of collection to stdout. For debugging.
-	 * 
+	 *
 	 * @param name
 	 * @param list
 	 */
@@ -1041,11 +1024,11 @@ public class DbConfig {
 		public ValidateSessionThread(DbConfig service) {
 			this.service = service;
 		}
-		
+
 		@Override
 		public void run() {
 			DbConfig dbConfig = Core.getInstance().getDbConfig();
-			
+
 			while (!Thread.interrupted()) {
 				Time.sleep(60 * 1000);
 				try {
@@ -1055,18 +1038,18 @@ public class DbConfig {
 				} catch (Throwable t) {
 					logger.error("session test failure: {} {}", t, t);
 					// the only reason this validate query should fail is if
-					// our db connnection is invalid 
+					// our db connnection is invalid
 					// log the issue for now
 					// eventually flush connection pool or give other hints
 				}
-				
+
 			}
 		}
 	}
-	
+
 	/**
 	 * For debugging.
-	 * 
+	 *
 	 * @param args
 	 */
 	public static void main(String args[]) {
