@@ -42,7 +42,7 @@ import org.transitclock.db.structs.StopPath;
 import org.transitclock.db.structs.Trip;
 import org.transitclock.ipc.data.IpcPrediction;
 import org.transitclock.ipc.data.IpcPrediction.ArrivalOrDeparture;
-import org.transitclock.monitoring.CloudwatchService;
+import org.transitclock.monitoring.MonitoringService;
 import org.transitclock.utils.Geo;
 import org.transitclock.utils.Time;
 
@@ -74,7 +74,7 @@ import org.transitclock.utils.Time;
  */
 public class PredictionGeneratorDefaultImpl extends PredictionGenerator implements PredictionComponentElementsGenerator{
 
-	private CloudwatchService monitoring = null;
+	private MonitoringService monitoring = null;
 
 	private static BooleanConfigValue terminatePredictionsAtTripEnd =
 			new BooleanConfigValue("transitclock.core.terminatePredictionsAtTripEnd",
@@ -631,9 +631,9 @@ public class PredictionGeneratorDefaultImpl extends PredictionGenerator implemen
 	 * lazy load Cloudwatch Monitoring service.
 	 * @return
 	 */
-	protected CloudwatchService getMonitoring() {
+	protected MonitoringService getMonitoring() {
 		if (monitoring == null)
-			monitoring = CloudwatchService.getInstance();
+			monitoring = MonitoringService.getInstance();
 		return monitoring;
 	}
 
