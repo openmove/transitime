@@ -9,6 +9,9 @@ import com.amazonaws.services.cloudwatch.model.StandardUnit;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.Marker;
+import org.slf4j.MarkerFactory;
+import org.transitclock.applications.Core;
 import org.transitclock.utils.MathUtils;
 
 import java.util.*;
@@ -27,7 +30,8 @@ public class CloudwatchService {
     private ScheduledExecutorService executor;
     private Integer _batchSize = 1000;
     private boolean enabled = false;
-
+	Marker dataMarker = MarkerFactory.getMarker("DATA");
+	
     private static final Logger logger = LoggerFactory
             .getLogger(CloudwatchService.class);
 
@@ -226,15 +230,28 @@ public class CloudwatchService {
         }
 
     }
+    private class LogIndividualMetricsTask implements Runnable {
+    	@Override
+        public void run() {
+            List<MetricScalar> records = new ArrayList<MetricScalar>();
+            individualMetricsQueue.drainTo(records, _batchSize);
+            for(MetricScalar metricScalar : records){
+                logger.info(dataMarker, "{},{}", metricScalar.metricName, metricScalar.metricValue);
+
+            }
+        }
+    }
 
     private class PublishIndividualMetricsTask implements Runnable {
 
+    
         @Override
         public void run() {
             List<MetricScalar> records = new ArrayList<MetricScalar>();
             individualMetricsQueue.drainTo(records, _batchSize);
             for(MetricScalar metricScalar : records){
                 logger.debug("Publishing individual metric [{}]={}", metricScalar.metricName, metricScalar.metricValue);
+                logger.info(dataMarker, "{},{}", metricScalar.metricName, metricScalar.metricValue);
                 if(metricScalar.formatAsPercent){
                     publishMetricAsPercent(metricScalar.metricName, metricScalar.metricValue);
                 }else{

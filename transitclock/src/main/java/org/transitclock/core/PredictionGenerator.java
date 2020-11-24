@@ -52,6 +52,8 @@ import org.transitclock.gtfs.DbConfig;
 import org.transitclock.ipc.data.IpcArrivalDeparture;
 import org.transitclock.ipc.data.IpcPrediction;
 import org.transitclock.ipc.data.IpcPredictionsForRouteStopDest;
+import org.transitclock.monitoring.CloudwatchService;
+import org.transitclock.monitoring.MonitoringService;
 import org.transitclock.utils.Time;
 
 import org.slf4j.Logger;
@@ -93,12 +95,14 @@ public abstract class PredictionGenerator {
 	private static final Logger logger = 
 			LoggerFactory.getLogger(PredictionGenerator.class);
 	
+	private CloudwatchService monitoring = null;
+	
 	protected TravelTimeDetails getLastVehicleTravelTime(VehicleState currentVehicleState, Indices indices) throws Exception {
 
 		StopArrivalDepartureCacheKey nextStopKey = new StopArrivalDepartureCacheKey(
 				indices.getStopPath().getStopId(),
 				new Date(currentVehicleState.getMatch().getAvlTime()));
-
+		
 		/* TODO how do we handle the the first stop path. Where do we get the first stop id. */
 		if(!indices.atBeginningOfTrip())
 		{
@@ -123,14 +127,16 @@ public abstract class PredictionGenerator {
 
 						if ((found = findMatchInList(nextStopList, currentArrivalDeparture)) != null) {
 							TravelTimeDetails travelTimeDetails=new TravelTimeDetails(currentArrivalDeparture, found);
-							if(travelTimeDetails.getTravelTime()>0)
-							{
-								return travelTimeDetails;
-
-							}else
-							{								
-								String description=found + " : " + currentArrivalDeparture;
-								PredictionEvent.create(currentVehicleState.getAvlReport(), currentVehicleState.getMatch(), PredictionEvent.TRAVELTIME_EXCEPTION, 
+							
+							getMonitoring().rateMetric("PredictionLastVehicleFound", true);
+							
+							if(!travelTimeDetails.sanityCheck())
+							{	
+								getMonitoring().rateMetric("PredictionLastVehicleValidTravelTime", false);
+								
+								
+								String description="Sanity check failed for travel time";
+								PredictionEvent.create(currentVehicleState.getAvlReport(), currentVehicleState.getMatch(), PredictionEvent.TRAVELTIME_SANITYCHECK_EXCEPTION, 
 										description, 
 										travelTimeDetails.getArrival().getStopId(), 
 										travelTimeDetails.getDeparture().getStopId(),
@@ -138,16 +144,42 @@ public abstract class PredictionGenerator {
 										travelTimeDetails.getArrival().getTime(),
 										travelTimeDetails.getDeparture().getTime()
 										);
+								
+								return null;
+							}	
+														
+							getMonitoring().rateMetric("PredictionLastVehicleValidTravelTime", true);
+							
+							if(travelTimeDetails.getTravelTime()>0)
+							{
+								getMonitoring().rateMetric("PredictionLastVehicleValidDurationTravelTime", true);
+							
+								return travelTimeDetails;		
+								
+
+							}else
+							{																			
+								getMonitoring().rateMetric("PredictionLastVehicleValidDurationTravelTime", false);
+							
+								
+								String description="Travel time duration less than 1 millisecond";
+								PredictionEvent.create(currentVehicleState.getAvlReport(), currentVehicleState.getMatch(), PredictionEvent.TRAVELTIME_DURATION_EXCEPTION, 
+										description, 
+										travelTimeDetails.getArrival().getStopId(), 
+										travelTimeDetails.getDeparture().getStopId(),
+										travelTimeDetails.getArrival().getVehicleId(),
+										travelTimeDetails.getArrival().getTime(),
+										travelTimeDetails.getDeparture().getTime()
+										);
+								
 								return null;
 							}
-						}else
-						{
-							return null;
 						}
 					}
 				}
 			}
 		}
+		getMonitoring().rateMetric("PredictionLastVehicleFound", false);
 		return null;
 	}
 	protected Indices getLastVehicleIndices(VehicleState currentVehicleState, Indices indices) {
@@ -306,6 +338,7 @@ public abstract class PredictionGenerator {
 					}
 				}
 			}
+			
 		}
 		return times;
 	}
@@ -329,5 +362,13 @@ public abstract class PredictionGenerator {
 		return iterable == null ? Collections.<T> emptyList() : iterable;
 	}
 
-	
+	/**
+	 * lazy load Cloudwatch Monitoring service.
+	 * @return
+	 */
+	protected CloudwatchService getMonitoring() {
+		if (monitoring == null)
+			monitoring = CloudwatchService.getInstance();
+		return monitoring;
+	}	
 }

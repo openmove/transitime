@@ -146,7 +146,9 @@ public class PredictionEvent implements Serializable {
 	
 	// Some standard prediciton event types
 	public static final String PREDICTION_VARIATION = "Prediction variation";
-	public static final String TRAVELTIME_EXCEPTION = "Travel time exception";
+	
+	public static final String TRAVELTIME_SANITYCHECK_EXCEPTION = "Travel time sanity check exception";
+	public static final String TRAVELTIME_DURATION_EXCEPTION = "Travel time duration exception";
 	
 	// Hibernate requires class to be Serializable
 	private static final long serialVersionUID = -763445348557811925L;

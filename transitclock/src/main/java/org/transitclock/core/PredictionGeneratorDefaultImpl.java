@@ -74,7 +74,6 @@ import org.transitclock.utils.Time;
  */
 public class PredictionGeneratorDefaultImpl extends PredictionGenerator implements PredictionComponentElementsGenerator{
 
-	private CloudwatchService monitoring = null;
 
 	private static BooleanConfigValue terminatePredictionsAtTripEnd =
 			new BooleanConfigValue("transitclock.core.terminatePredictionsAtTripEnd",
@@ -627,14 +626,5 @@ public class PredictionGeneratorDefaultImpl extends PredictionGenerator implemen
 
 
 
-	/**
-	 * lazy load Cloudwatch Monitoring service.
-	 * @return
-	 */
-	protected CloudwatchService getMonitoring() {
-		if (monitoring == null)
-			monitoring = CloudwatchService.getInstance();
-		return monitoring;
-	}
 
 }

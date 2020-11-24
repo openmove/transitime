@@ -527,6 +527,7 @@ public class Core {
 
 			// populate caches to be used by prediction methods.
 			try {
+				CacheManagerFactory.getInstance();
 				populateCaches();								
 			} catch (Exception e) {
 				logger.error("Failed to populate cache.", e);

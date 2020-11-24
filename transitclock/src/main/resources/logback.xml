@@ -414,7 +414,24 @@
 		</encoder>
 	</appender>
 
-
+    
+	<appender name="CLOUDWATCHDATA"
+		class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<fileNamePattern>${LOG_FILE_ROOT}/cloudwatchdata.log.gz</fileNamePattern>
+			<!-- keep 3 days' worth of history -->
+      		<maxHistory>3</maxHistory>      		
+		</rollingPolicy>
+		<turboFilter class="ch.qos.logback.classic.turbo.MarkerFilter">
+	        <Marker>DATA</Marker>
+	        <onMatch>ALLOW</onMatch>
+	        <OnMismatch>DENY</OnMismatch>
+    	</turboFilter>
+		<encoder>
+			<charset>UTF-8</charset>
+			<pattern>${DATA_PATTERN}</pattern>
+		</encoder>
+	</appender>
 	<!--====================================================== -->
 	<!--=============== Loggers defined here ================= -->
 	<!--====================================================== -->
@@ -571,6 +588,10 @@
 	<logger name="org.transitclock.custom.barefoot.BarefootAVLModule" 
 		level="debug" additivity="true"> 
 		<appender-ref ref="MAPMATCH" /> 
+	</logger>
+	
+	<logger name="org.transitclock.monitoring.CloudwatchService" level="info" additivity="true">
+		<appender-ref ref="CLOUDWATCHDATA" /> 
 	</logger>
 
 	<!-- In order to log the hibernate SQL queries need to set org.hibernate.SQL
