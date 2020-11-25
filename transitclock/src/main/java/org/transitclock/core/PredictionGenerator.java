@@ -24,38 +24,25 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.beanutils.BeanComparator;
 import org.apache.commons.lang3.time.DateUtils;
 
 import org.transitclock.applications.Core;
 import org.transitclock.config.BooleanConfigValue;
 import org.transitclock.config.IntegerConfigValue;
-import org.transitclock.core.dataCache.PredictionComparator;
-import org.transitclock.core.dataCache.PredictionDataCache;
 import org.transitclock.core.dataCache.StopArrivalDepartureCacheFactory;
 import org.transitclock.core.dataCache.StopArrivalDepartureCacheKey;
 import org.transitclock.core.dataCache.TripDataHistoryCacheFactory;
 import org.transitclock.core.dataCache.TripDataHistoryCacheInterface;
 import org.transitclock.core.dataCache.TripKey;
-import org.transitclock.core.dataCache.ehcache.StopArrivalDepartureCache;
-import org.transitclock.core.dataCache.ehcache.scheduled.TripDataHistoryCache;
-import org.transitclock.core.predictiongenerator.datafilter.DwellTimeDataFilter;
-import org.transitclock.core.predictiongenerator.datafilter.DwellTimeFilterFactory;
 import org.transitclock.core.predictiongenerator.datafilter.TravelTimeDataFilter;
 import org.transitclock.core.predictiongenerator.datafilter.TravelTimeFilterFactory;
 import org.transitclock.db.structs.ArrivalDeparture;
-import org.transitclock.db.structs.AvlReport;
 import org.transitclock.db.structs.Block;
 import org.transitclock.db.structs.PredictionEvent;
-import org.transitclock.db.structs.Trip;
 import org.transitclock.gtfs.DbConfig;
 import org.transitclock.ipc.data.IpcArrivalDeparture;
 import org.transitclock.ipc.data.IpcPrediction;
-import org.transitclock.ipc.data.IpcPredictionsForRouteStopDest;
-import org.transitclock.monitoring.CloudwatchService;
 import org.transitclock.monitoring.MonitoringService;
-import org.transitclock.utils.Time;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -95,7 +82,7 @@ public abstract class PredictionGenerator {
 	private static final Logger logger = 
 			LoggerFactory.getLogger(PredictionGenerator.class);
 	
-	private CloudwatchService monitoring = null;
+	private MonitoringService monitoring = null;
 	
 	protected TravelTimeDetails getLastVehicleTravelTime(VehicleState currentVehicleState, Indices indices) throws Exception {
 
@@ -363,12 +350,13 @@ public abstract class PredictionGenerator {
 	}
 
 	/**
-	 * lazy load Cloudwatch Monitoring service.
+	 * lazy load Monitoring service.
 	 * @return
 	 */
-	protected CloudwatchService getMonitoring() {
+	protected MonitoringService getMonitoring() {
 		if (monitoring == null)
-			monitoring = CloudwatchService.getInstance();
+			monitoring = MonitoringService.getInstance();
 		return monitoring;
-	}	
+	}
+	
 }

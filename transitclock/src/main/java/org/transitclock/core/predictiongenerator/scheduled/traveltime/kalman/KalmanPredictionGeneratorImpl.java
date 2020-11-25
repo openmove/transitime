@@ -128,16 +128,21 @@ public class KalmanPredictionGeneratorImpl extends PredictionGeneratorDefaultImp
 						maxKalmanDaysToSearch.getValue(), maxKalmanDays.getValue());
 
 				if(lastDaysTimes!=null)
-				{
+				{									
 					logger.debug("Kalman has " +lastDaysTimes.size()+ " historical values for : " +indices.toString());
+					getMonitoring().averageMetric("PredictionKalmanHistorySize", lastDaysTimes.size());
+				}else
+				{
+					getMonitoring().averageMetric("PredictionKalmanHistorySize", 0);
 				}
 				/*
 				 * if we have enough data start using Kalman filter otherwise revert
 				 * to extended class for prediction.
-				 */
+				 */								
+				
 				if (lastDaysTimes != null && lastDaysTimes.size() >= minKalmanDays.getValue().intValue()) {
 					getMonitoring().rateMetric("PredictionKalmanHistoryHit", true);
-					getMonitoring().averageMetric("PredictionKalmanHistorySize", lastDaysTimes.size());
+					
 					logger.debug("Generating Kalman prediction for : "+indices.toString());
 
 					try {

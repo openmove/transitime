@@ -11,13 +11,7 @@ import org.transitclock.utils.Time;
 
 public class TravelTimeDetails {
 	private IpcArrivalDeparture departure;
-	private IpcArrivalDeparture arrival;
-	
-	private static final IntegerConfigValue maxTravelTime = 
-			new IntegerConfigValue(
-					"transitclock.core.maxTravelTime",
-					30 * Time.MS_PER_MIN,
-					"This is a maximum allowed for travel between two stops. Used as a sanity check for cache and predictions.");
+	private IpcArrivalDeparture arrival;		
 	
 	private static final Logger logger = LoggerFactory
 			.getLogger(TravelTimeDetails.class);

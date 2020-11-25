@@ -590,7 +590,7 @@
 		<appender-ref ref="MAPMATCH" /> 
 	</logger>
 	
-	<logger name="org.transitclock.monitoring.CloudwatchService" level="info" additivity="true">
+	<logger name="org.transitclock.monitoring.MonitoringService" level="info" additivity="true">
 		<appender-ref ref="CLOUDWATCHDATA" /> 
 	</logger>
 

@@ -6,6 +6,7 @@ import org.transitclock.config.IntegerConfigValue;
 import org.transitclock.config.LongConfigValue;
 import org.transitclock.db.structs.PredictionEvent;
 import org.transitclock.ipc.data.IpcArrivalDeparture;
+import org.transitclock.monitoring.MonitoringService;
 import org.transitclock.utils.Time;
 /**
  * 
@@ -31,13 +32,15 @@ public class TravelTimeDataFilterImpl implements TravelTimeDataFilter {
 			"If schedule adherence of vehicle is outside this then not considerd in travel time algorithm.");
 	
 	private static final Logger logger = LoggerFactory.getLogger(DwellTimeDataFilterImpl.class);
-
+	
+	private static MonitoringService monitoring=null;
+	
 	@Override
 	public boolean filter(IpcArrivalDeparture departure, IpcArrivalDeparture arrival) {
 		if (arrival != null && departure != null) {
 			long traveltime = arrival .getTime().getTime() - departure.getTime().getTime();
-
-			if (arrival.getScheduledAdherence() == null 
+							
+			if (departure.getScheduledAdherence() == null 
 					|| (departure.getScheduledAdherence() != null && departure.getScheduledAdherence()
 					.isWithinBounds(minSceheduleAdherence.getValue(), maxSceheduleAdherence.getValue()))) {	
 				// TODO Arrival schedule adherence appears not to be set much. So
@@ -46,6 +49,8 @@ public class TravelTimeDataFilterImpl implements TravelTimeDataFilter {
 						.isWithinBounds(minSceheduleAdherence.getValue(), maxSceheduleAdherence.getValue())) {
 					if (traveltime < maxTravelTimeAllowedInModel.getValue()
 							&& traveltime > minTravelTimeAllowedInModel.getValue()) {
+						
+						getMonitoring().rateMetric("TravelTimeDataFilterFilteredTravelTime", false);
 						return false;
 												
 					} else {
@@ -60,8 +65,17 @@ public class TravelTimeDataFilterImpl implements TravelTimeDataFilter {
 		} else {
 			logger.warn("Arrival and/or departure not set.");
 		}
-	
+		getMonitoring().rateMetric("TravelTimeDataFilterFilteredTravelTime", true);
 		return true;
 	}
 
+	/**
+	 * lazy load Monitoring service.
+	 * @return
+	 */
+	protected MonitoringService getMonitoring() {
+		if (monitoring == null)
+			monitoring = MonitoringService.getInstance();
+		return monitoring;
+	}
 }
