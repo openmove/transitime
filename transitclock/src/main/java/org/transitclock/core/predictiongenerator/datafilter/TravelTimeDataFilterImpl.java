@@ -39,7 +39,28 @@ public class TravelTimeDataFilterImpl implements TravelTimeDataFilter {
 	public boolean filter(IpcArrivalDeparture departure, IpcArrivalDeparture arrival) {
 		if (arrival != null && departure != null) {
 			long traveltime = arrival .getTime().getTime() - departure.getTime().getTime();
-							
+			
+			if(departure.getScheduledAdherence() != null && arrival.getScheduledAdherence() != null)
+			{
+				getMonitoring().rateMetric("ScheduleAdherenceBothSet", true);
+			}else
+			{
+				getMonitoring().rateMetric("ScheduleAdherenceBothSet", false);
+			}
+			if(departure.getScheduledAdherence() == null)
+			{
+				getMonitoring().rateMetric("ScheduleAdherenceDepartureSet", false);
+			}else
+			{
+				getMonitoring().rateMetric("ScheduleAdherenceDepartureSet", true);
+			}
+			if(arrival.getScheduledAdherence() == null)
+			{
+				getMonitoring().rateMetric("ScheduleAdherenceArrivalSet", false);
+			}else
+			{
+				getMonitoring().rateMetric("ScheduleAdherenceArrivalSet", true);
+			}				
 			if (departure.getScheduledAdherence() == null 
 					|| (departure.getScheduledAdherence() != null && departure.getScheduledAdherence()
 					.isWithinBounds(minSceheduleAdherence.getValue(), maxSceheduleAdherence.getValue()))) {	
