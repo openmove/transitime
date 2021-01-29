@@ -41,8 +41,8 @@ public class OpenMoveAVLModule extends PollUrlAvlModule {
 			Double latitude=entry.getDouble("lat");
 			Double longitude=entry.getDouble("lng");			
 			long timestamp=entry.getLong("time");
-			float heading=Float.NaN;;
-			float speed=Float.NaN;;
+			float heading=Float.NaN;
+			float speed=Float.NaN;
 
 			if(entry.has("heading")){
 				heading=(float)entry.getDouble("heading");
